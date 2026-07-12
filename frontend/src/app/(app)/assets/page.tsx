@@ -165,23 +165,13 @@ export default function AssetsPage() {
 
   return (
     <div className="grid gap-6">
-      <header className="flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-[1.85rem] tracking-tight">Assets</h1>
-          <p className="text-sm text-secondary">
-            {canWrite
-              ? "Register assets (auto tag) and search the directory by tag, serial, or name."
-              : "Browse available assets and request allocation."}
-          </p>
-        </div>
-        <button
-          className={secondaryButtonClass}
-          onClick={() => setShowRequests(!showRequests)}
-        >
-          {showRequests
-            ? "Hide Requests"
-            : `My Requests${myRequests.length > 0 ? ` (${myRequests.length})` : ""}`}
-        </button>
+      <header>
+        <h1 className="text-xl font-semibold">Assets</h1>
+        <p className="text-sm text-secondary">
+          {canWrite
+            ? "Register assets (auto tag) and search the directory by tag, serial, or name."
+            : "Browse the asset directory (read-only)."}
+        </p>
       </header>
 
       {/* Resource Request Modal */}
@@ -411,7 +401,7 @@ export default function AssetsPage() {
                 <p className="mt-1 text-xs text-secondary">Uploading…</p>
               ) : null}
               {photoUrl ? (
-                <p className="mt-1 truncate text-xs text-brand" title={photoUrl}>
+                <p className="mt-1 truncate text-xs text-green" title={photoUrl}>
                   Uploaded
                 </p>
               ) : null}
@@ -445,30 +435,24 @@ export default function AssetsPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <Select
-          className="max-w-full sm:max-w-[180px]"
-          value={status}
-          onChange={setStatus}
-          options={[
-            { value: "", label: "All statuses" },
-            { value: "available", label: "Available" },
-            { value: "allocated", label: "Allocated" },
-            { value: "reserved", label: "Reserved" },
-            { value: "maintenance", label: "Maintenance" },
-            { value: "lost", label: "Lost" },
-            { value: "retired", label: "Retired" },
-            { value: "disposed", label: "Disposed" },
-          ]}
-        />
-        <Select
-          className="max-w-full sm:max-w-[200px]"
-          value={categoryId}
-          onChange={setCategoryId}
-          options={[
-            { value: "", label: "All categories" },
-            ...categories.map((category) => ({ value: String(category.id), label: category.name })),
-          ]}
-        />
+        <select className={`${inputClass} max-w-full sm:max-w-[180px]`} value={status} onChange={(event) => setStatus(event.target.value)}>
+          <option value="">All statuses</option>
+          <option value="available">Available</option>
+          <option value="allocated">Allocated</option>
+          <option value="reserved">Reserved</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="lost">Lost</option>
+          <option value="retired">Retired</option>
+          <option value="disposed">Disposed</option>
+        </select>
+        <select className={`${inputClass} max-w-full sm:max-w-[200px]`} value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+          <option value="">All categories</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
         <input
           className={`${inputClass} max-w-full sm:max-w-[12rem]`}
           placeholder="Location"
@@ -516,7 +500,7 @@ export default function AssetsPage() {
           {assets.map((asset) => (
             <TableRow key={asset.id}>
               <td className="px-4 py-3">
-                <Link className="text-brand hover:underline" href={`/assets/${asset.id}`}>
+                <Link className="text-green hover:underline" href={`/assets/${asset.id}`}>
                   {asset.tag}
                 </Link>
               </td>
