@@ -95,6 +95,21 @@ button {
   border-radius: var(--radius-card);
   background: var(--surface);
   transition: border-color var(--transition-fast), transform var(--transition-fast);
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Windows Chrome file controls ignore normal width unless constrained */
+input[type="file"] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+input[type="file"]::file-selector-button {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-surface-hover:hover {

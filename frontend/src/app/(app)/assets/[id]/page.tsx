@@ -82,7 +82,9 @@ export default function AssetDetailPage() {
         </div>
         <div>
           <div className="text-xs text-secondary">Photo</div>
-          <div className="truncate text-sm text-secondary">{asset.photo_url ?? "—"}</div>
+          <div className="truncate text-sm text-secondary" title={asset.photo_url ?? undefined}>
+            {asset.photo_url ? "Attached" : "—"}
+          </div>
         </div>
       </section>
 
