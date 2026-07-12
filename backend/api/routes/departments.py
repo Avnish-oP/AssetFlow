@@ -17,11 +17,17 @@ async def list_departments(db: Annotated[AsyncSession, Depends(get_db)]):
     return (await db.scalars(select(Department).order_by(Department.name))).all()
 
 
+from sqlalchemy.exc import IntegrityError
+
 @router.post("", response_model=DepartmentResponse, status_code=status.HTTP_201_CREATED)
 async def create_department(payload: DepartmentCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     department = Department(**payload.model_dump())
     db.add(department)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail=f"Department '{payload.name}' already exists")
     await db.refresh(department)
     return department
 

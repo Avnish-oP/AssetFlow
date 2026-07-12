@@ -17,11 +17,17 @@ async def list_categories(db: Annotated[AsyncSession, Depends(get_db)]):
     return (await db.scalars(select(AssetCategory).order_by(AssetCategory.name))).all()
 
 
+from sqlalchemy.exc import IntegrityError
+
 @router.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(payload: CategoryCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     category = AssetCategory(**payload.model_dump())
     db.add(category)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail=f"Category '{payload.name}' already exists")
     await db.refresh(category)
     return category
 

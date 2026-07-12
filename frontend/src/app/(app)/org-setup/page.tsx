@@ -24,23 +24,37 @@ export default function OrgSetupPage() {
   }, []);
 
   async function createDepartment(form: FormData) {
+    const name = form.get("name") as string;
     try {
-      const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name: form.get("name") }) });
+      const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name }) });
       setDepartments((current) => [item, ...current]);
       showToast("Department created", "success");
-    } catch {
-      showToast("Failed to create department", "error");
+    } catch (error) {
+      const apiError = error as { status?: number; detail?: unknown };
+      if (apiError.status === 409 || apiError.status === 400) {
+        const detailStr = typeof apiError.detail === "string" ? apiError.detail : `Department "${name}" already exists`;
+        showToast(detailStr, "error");
+      } else {
+        showToast("Failed to create department", "error");
+      }
       throw new Error(); // Re-throw to prevent form reset in child
     }
   }
 
   async function createCategory(form: FormData) {
+    const name = form.get("name") as string;
     try {
-      const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
+      const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name, custom_fields: {} }) });
       setCategories((current) => [item, ...current]);
       showToast("Category created", "success");
-    } catch {
-      showToast("Failed to create category", "error");
+    } catch (error) {
+      const apiError = error as { status?: number; detail?: unknown };
+      if (apiError.status === 409 || apiError.status === 400) {
+        const detailStr = typeof apiError.detail === "string" ? apiError.detail : `Category "${name}" already exists`;
+        showToast(detailStr, "error");
+      } else {
+        showToast("Failed to create category", "error");
+      }
       throw new Error();
     }
   }
@@ -116,6 +130,8 @@ function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: Form
         try {
           await onSubmit(new FormData(form));
           form.reset();
+        } catch (error) {
+          // Ignored: parent handles the toast, we just want to skip form.reset()
         } finally {
           setIsSubmitting(false);
         }
