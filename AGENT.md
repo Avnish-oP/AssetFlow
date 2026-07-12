@@ -74,6 +74,9 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
 
 *(append-only, newest on top, one line each: `HH:MM — decision — why`)*
 
+- 2026-07-12 — implemented Phase 1 in actual `backend/` + `frontend/` structure — repo does not use README's `apps/api` + `apps/web` paths.
+- 2026-07-12 — backend dependencies are tracked in `backend/requirements.txt` — no Python project manifest existed yet.
+- 2026-07-12 — raw SQL bootstrap stays in `backend/infra/postgres/init.sql` and docker-compose mounts that path — fastest path for the hackathon schema and DB-level constraints.
 - `docker-compose.yml` covers postgres/redis/minio only — FastAPI stays un-dockerized until the API is stable, to keep `uvicorn --reload` fast during the build. Add an `api` service + `apps/api/Dockerfile` later, not now.
 - Backend isn't strictly one-owner: any full-stack dev comfortable in FastAPI can pick up a second router (maintenance/reports preferred — see README §7) after their own screens are wired, instead of staying frontend-only for the full 2.5–7h block.
 - —
