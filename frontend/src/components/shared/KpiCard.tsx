@@ -22,25 +22,9 @@ export function KpiCard({
   const trendNegative = trend?.startsWith("-");
 
   return (
-    <div
-      className={`card-surface card-surface-hover p-4 ${accentColor ? accentBorders[accentColor] : ""}`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[28px] font-semibold leading-tight text-primary">{value}</div>
-          <div className="mt-1 text-xs text-secondary">{label}</div>
-        </div>
-        {icon ? <div className="text-muted">{icon}</div> : null}
-      </div>
-      {trend ? (
-        <div
-          className={`mt-2 text-xs ${
-            trendPositive ? "text-green" : trendNegative ? "text-red" : "text-secondary"
-          }`}
-        >
-          {trend}
-        </div>
-      ) : null}
+    <div className="rounded-lg border border-line bg-surface p-4 transition-all duration-300 hover:-translate-y-1 hover:border-line-strong hover:shadow-xl hover:shadow-bg/50">
+      <div className="text-[28px] font-semibold leading-tight text-primary">{value}</div>
+      <div className="mt-1 text-xs text-secondary">{label}</div>
     </div>
   );
 }

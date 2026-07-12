@@ -32,7 +32,7 @@ export function StatusPill({ value }: { value: string }) {
   const pulse = pulseStatuses.has(key);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs shadow-sm hover:shadow-md hover:brightness-125 transition-all cursor-default ${
         palette[key] ?? "border-line bg-raised text-secondary"
       }`}
     >

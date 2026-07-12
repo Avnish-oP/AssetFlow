@@ -1,3 +1,5 @@
+import React from "react";
+
 export function DataTable({
   headers,
   children,
@@ -5,11 +7,12 @@ export function DataTable({
   headers: string[];
   children: React.ReactNode;
 }) {
+  const isEmpty = React.Children.count(children) === 0;
   return (
     <div className="card-surface overflow-hidden">
       <table className="w-full border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-line text-xs text-secondary">
+          <tr className="border-b border-line text-xs text-secondary bg-surface-raised">
             {headers.map((header) => (
               <th key={header} className="px-4 py-3.5 font-normal">
                 {header}
@@ -17,7 +20,17 @@ export function DataTable({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-line">{children}</tbody>
+        <tbody className="divide-y divide-line">
+          {isEmpty ? (
+            <tr>
+              <td colSpan={headers.length} className="px-4 py-8 text-center text-sm text-secondary">
+                No data available
+              </td>
+            </tr>
+          ) : (
+            children
+          )}
+        </tbody>
       </table>
     </div>
   );

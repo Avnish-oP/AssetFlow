@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type Asset } from "@/lib/api";
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -17,12 +20,7 @@ export default function AssetsPage() {
     if (status) params.set("status", status);
     apiFetch<Asset[]>(`/assets?${params.toString()}`)
       .then(setAssets)
-      .catch(() =>
-        setAssets([
-          { id: 1, tag: "AF-0114", name: "MacBook Pro 14", status: "available", condition: "good", location: "Engineering", is_bookable: false },
-          { id: 2, tag: "AF-ROOM-B2", name: "Room B2", status: "available", condition: "good", location: "Floor 2", is_bookable: true },
-        ]),
-      );
+      .catch(() => setAssets([]));
   }, [search, status]);
 
   async function createAsset(form: FormData) {
@@ -33,8 +31,17 @@ export default function AssetsPage() {
       is_bookable: form.get("is_bookable") === "on",
       condition: "good",
     };
-    const asset = await apiFetch<Asset>("/assets", { method: "POST", body: JSON.stringify(payload) });
-    setAssets((current) => [asset, ...current]);
+    setIsSubmitting(true);
+    try {
+      const asset = await apiFetch<Asset>("/assets", { method: "POST", body: JSON.stringify(payload) });
+      setAssets((current) => [asset, ...current]);
+      showToast("Asset registered successfully", "success");
+      form.get("name"); // Just to use form in try
+    } catch {
+      showToast("Failed to register asset", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -48,15 +55,18 @@ export default function AssetsPage() {
           className="grid gap-3 md:grid-cols-5"
           onSubmit={async (event) => {
             event.preventDefault();
-            await createAsset(new FormData(event.currentTarget));
-            event.currentTarget.reset();
+            const form = event.currentTarget;
+            await createAsset(new FormData(form));
+            if (!isSubmitting) form.reset();
           }}
         >
           <FormField label="Asset name"><input className={inputClass} name="name" required /></FormField>
           <FormField label="Serial number"><input className={inputClass} name="serial_number" /></FormField>
           <FormField label="Location"><input className={inputClass} name="location" /></FormField>
           <label className="flex items-center gap-2 pt-6 text-sm text-secondary"><input name="is_bookable" type="checkbox" /> Bookable</label>
-          <button className={`${buttonClass} mt-6`}>Register asset</button>
+          <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+            {isSubmitting ? "Registering..." : "Register asset"}
+          </button>
         </form>
       </div>
       <div className="flex gap-3">

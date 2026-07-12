@@ -5,6 +5,7 @@ import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type ApiError, type Asset, type Booking } from "@/lib/api";
 
 type DaySlot = {
@@ -54,6 +55,8 @@ export default function BookingsPage() {
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
   const [conflict, setConflict] = useState<BookingConflict | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -99,6 +102,7 @@ export default function BookingsPage() {
       return;
     }
     setConflict(null);
+    setIsSubmitting(true);
     setError("");
     try {
       const booking = await apiFetch<Booking>("/bookings", {
@@ -111,14 +115,18 @@ export default function BookingsPage() {
       });
       setBookings((current) => [booking, ...current]);
       await loadDaySlots(Number(resourceId), date);
-    } catch (err) {
-      const apiError = err as ApiError;
+      showToast("Resource booked successfully", "success");
+    } catch (error) {
+      const apiError = error as ApiError;
       if (apiError.status === 409) {
         setConflict(apiError.detail as BookingConflict);
         await loadDaySlots(Number(resourceId), date);
+        showToast("Slot unavailable", "error");
       } else {
-        setError("Booking failed.");
+        showToast("Failed to book resource", "error");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -167,8 +175,8 @@ export default function BookingsPage() {
         <FormField label="End">
           <input className={inputClass} type="time" value={end} onChange={(event) => setEnd(event.target.value)} required />
         </FormField>
-        <button className={`${buttonClass} mt-6`} disabled={!resourceId}>
-          Book a slot
+        <button className={`${buttonClass} mt-6`} disabled={!resourceId || isSubmitting}>
+          {isSubmitting ? "Booking..." : "Book a slot"}
         </button>
       </form>
 
@@ -260,16 +268,17 @@ export default function BookingsPage() {
       </section>
 
       <DataTable headers={["Resource", "Start", "End", "Status"]}>
-        {bookings.map((booking) => (
-          <tr key={booking.id}>
-            <td className="px-4 py-3">{booking.resource_id}</td>
-            <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
-            <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
-            <td className="px-4 py-3">
-              <StatusPill value={booking.status} />
-            </td>
-          </tr>
-        ))}
+        {bookings.map((booking) => {
+          const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
+          return (
+            <tr key={booking.id}>
+              <td className="px-4 py-3 font-medium">{resourceName}</td>
+              <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
+              <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
+              <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
+            </tr>
+          );
+        })}
       </DataTable>
     </div>
   );

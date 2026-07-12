@@ -62,9 +62,26 @@ TABLES = [
 async def clear_all(session: AsyncSession) -> None:
     # Break departments.head_id → users cycle before truncate
     await session.execute(text("UPDATE departments SET head_id = NULL"))
-    await session.execute(
-        text(f"TRUNCATE TABLE {', '.join(TABLES)} RESTART IDENTITY CASCADE")
+
+    result = await session.execute(
+        text(
+            """
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public'
+              AND tablename = ANY(:table_names)
+            """
+        ),
+        {"table_names": TABLES},
     )
+    existing_tables = [row[0] for row in result.fetchall()]
+    if existing_tables:
+        await session.execute(
+            text(f"TRUNCATE TABLE {', '.join(existing_tables)} RESTART IDENTITY CASCADE")
+        )
+    else:
+        print("No application tables found to truncate.")
+
     await session.execute(text("ALTER SEQUENCE asset_tag_seq RESTART WITH 200"))
     await session.commit()
     print("Cleared all application tables and reset sequences.")

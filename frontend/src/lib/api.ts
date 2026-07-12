@@ -73,6 +73,54 @@ export type TransferRequest = {
   approved_by?: number | null;
 };
 
+export type NotificationItem = {
+  id: number;
+  user_id: number;
+  user_name?: string | null;
+  user_email?: string | null;
+  type: string;
+  message: string;
+  related_entity_type?: string | null;
+  related_entity_id?: number | null;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type ReportAssetStat = {
+  asset_id: number;
+  tag: string;
+  name: string;
+  status: string;
+  condition: string;
+  location?: string | null;
+  usage_count: number;
+  allocation_count: number;
+  booking_count: number;
+  maintenance_count: number;
+  age_days?: number | null;
+};
+
+export type ReportSummary = {
+  generated_at: string;
+  totals: {
+    total_assets: number;
+    available_assets: number;
+    allocated_assets: number;
+    maintenance_assets: number;
+    bookable_assets: number;
+    active_allocations: number;
+    overdue_allocations: number;
+    active_bookings: number;
+    overdue_bookings: number;
+    pending_transfers: number;
+    utilization_rate: number;
+  };
+  most_used: ReportAssetStat[];
+  idle_assets: ReportAssetStat[];
+  maintenance_frequency: ReportAssetStat[];
+  retirement_candidates: ReportAssetStat[];
+};
+
 export type MaintenanceRequest = {
   id: number;
   asset_id: number;

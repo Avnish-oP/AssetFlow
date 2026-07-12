@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type User } from "@/lib/api";
 
 type Department = { id: number; name: string; status: string; head_id?: number | null; parent_department_id?: number | null };
@@ -14,6 +15,7 @@ export default function OrgSetupPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
+  const { showToast } = useToast();
   const [error, setError] = useState("");
 
   async function refresh() {
@@ -37,8 +39,21 @@ export default function OrgSetupPage() {
   }, []);
 
   async function createDepartment(form: FormData) {
-    const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name: form.get("name") }) });
-    setDepartments((current) => [item, ...current]);
+    const name = form.get("name") as string;
+    try {
+      const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name }) });
+      setDepartments((current) => [item, ...current]);
+      showToast("Department created", "success");
+    } catch (error) {
+      const apiError = error as { status?: number; detail?: unknown };
+      if (apiError.status === 409 || apiError.status === 400) {
+        const detailStr = typeof apiError.detail === "string" ? apiError.detail : `Department "${name}" already exists`;
+        showToast(detailStr, "error");
+      } else {
+        showToast("Failed to create department", "error");
+      }
+      throw new Error(); // Re-throw to prevent form reset in child
+    }
   }
 
   async function deactivateDepartment(department: Department) {
@@ -55,8 +70,21 @@ export default function OrgSetupPage() {
   }
 
   async function createCategory(form: FormData) {
-    const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
-    setCategories((current) => [item, ...current]);
+    const name = form.get("name") as string;
+    try {
+      const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name, custom_fields: {} }) });
+      setCategories((current) => [item, ...current]);
+      showToast("Category created", "success");
+    } catch (error) {
+      const apiError = error as { status?: number; detail?: unknown };
+      if (apiError.status === 409 || apiError.status === 400) {
+        const detailStr = typeof apiError.detail === "string" ? apiError.detail : `Category "${name}" already exists`;
+        showToast(detailStr, "error");
+      } else {
+        showToast("Failed to create category", "error");
+      }
+      throw new Error();
+    }
   }
 
   async function deleteCategory(category: Category) {
@@ -79,8 +107,13 @@ export default function OrgSetupPage() {
   }
 
   async function promote(employee: User, role: string) {
-    const updated = await apiFetch<User>(`/employees/${employee.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
-    setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    try {
+      const updated = await apiFetch<User>(`/employees/${employee.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+      setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      showToast(`Promoted to ${role.replace("_", " ")}`, "success");
+    } catch {
+      showToast("Failed to change role", "error");
+    }
   }
 
   async function toggleEmployeeStatus(employee: User) {
@@ -220,13 +253,22 @@ export default function OrgSetupPage() {
 }
 
 function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: FormData) => Promise<void> }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   return (
     <form
       className="flex max-w-xl items-end gap-3"
       onSubmit={async (event) => {
         event.preventDefault();
-        await onSubmit(new FormData(event.currentTarget));
-        event.currentTarget.reset();
+        const form = event.currentTarget;
+        setIsSubmitting(true);
+        try {
+          await onSubmit(new FormData(form));
+          form.reset();
+        } catch (error) {
+          // Ignored: parent handles the toast, we just want to skip form.reset()
+        } finally {
+          setIsSubmitting(false);
+        }
       }}
     >
       <div className="flex-1">
@@ -234,7 +276,9 @@ function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: Form
           <input className={inputClass} name="name" required />
         </FormField>
       </div>
-      <button className={buttonClass}>Add</button>
+      <button disabled={isSubmitting} className={buttonClass}>
+        {isSubmitting ? "Adding..." : "Add"}
+      </button>
     </form>
   );
 }

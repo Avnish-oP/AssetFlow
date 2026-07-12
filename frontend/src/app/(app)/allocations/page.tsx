@@ -5,6 +5,7 @@ import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useToast } from "@/components/shared/Toast";
 import {
   apiFetch,
   type Allocation,
@@ -28,6 +29,9 @@ export default function AllocationsPage() {
   const [transfers, setTransfers] = useState<TransferRequest[]>([]);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [transferReason, setTransferReason] = useState("Required for active project handoff");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
+
   const [returnTarget, setReturnTarget] = useState<Allocation | null>(null);
   const [returnNotes, setReturnNotes] = useState("");
   const [returnCondition, setReturnCondition] = useState("good");
@@ -52,6 +56,7 @@ export default function AllocationsPage() {
 
   async function submitAllocation(form: FormData) {
     setConflict(null);
+    setIsSubmitting(true);
     setMessage(null);
     try {
       await apiFetch<Allocation>("/allocations", {
@@ -63,26 +68,40 @@ export default function AllocationsPage() {
         }),
       });
       await refresh();
+      showToast("Asset allocated successfully", "success");
     } catch (error) {
       const apiError = error as ApiError;
-      if (apiError.status === 409) setConflict(apiError.detail as Conflict);
-      else throw error;
+      if (apiError.status === 409) {
+        setConflict(apiError.detail as Conflict);
+        showToast("Asset already allocated", "error");
+      } else {
+        showToast("Failed to allocate asset", "error");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
   async function submitTransfer(form: FormData) {
     if (!conflict) return;
-    await apiFetch("/transfers", {
-      method: "POST",
-      body: JSON.stringify({
-        asset_id: conflict.asset_id,
-        to_holder_id: Number(form.get("to_holder_id")),
-        reason: transferReason,
-      }),
-    });
-    setConflict(null);
-    setMessage("Transfer request submitted");
-    await refresh();
+    setIsSubmitting(true);
+    try {
+      await apiFetch("/transfers", {
+        method: "POST",
+        body: JSON.stringify({
+          asset_id: conflict.asset_id,
+          to_holder_id: Number(form.get("to_holder_id")),
+          reason: transferReason,
+        }),
+      });
+      setConflict(null);
+      showToast("Transfer request submitted", "success");
+      await refresh();
+    } catch {
+      showToast("Failed to submit transfer", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function actOnTransfer(id: number, action: "approve" | "complete" | "reject") {
@@ -151,7 +170,9 @@ export default function AllocationsPage() {
         <FormField label="Expected return">
           <input className={inputClass} name="expected_return_date" type="date" />
         </FormField>
-        <button className={`${buttonClass} mt-6`}>Allocate</button>
+        <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+          {isSubmitting ? "Allocating..." : "Allocate"}
+        </button>
       </form>
 
       {conflict ? (
@@ -180,7 +201,7 @@ export default function AllocationsPage() {
             <FormField label="Reason">
               <input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} />
             </FormField>
-            <button className={`${secondaryButtonClass} mt-6`}>Submit transfer</button>
+            <button disabled={isSubmitting} className={`${secondaryButtonClass} mt-6`}>{isSubmitting ? "Submitting..." : "Submit transfer"}</button>
           </form>
         </div>
       ) : null}
