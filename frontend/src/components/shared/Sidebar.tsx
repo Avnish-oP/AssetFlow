@@ -194,28 +194,38 @@ export function Sidebar() {
             })}
         </nav>
 
-        <div className="space-y-3 border-t border-line p-4">
-          <ThemeSwitcher compact />
-          <div className="flex items-center gap-3 rounded-xl bg-raised p-2.5">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-bg text-xs font-semibold text-brand">
-              {initials(user?.name)}
+        <div className="border-t border-line p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-bg text-xs font-semibold text-brand">
+                {initials(user?.name)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-primary">{user?.name ?? "Demo user"}</div>
+                <div className="truncate text-[11px] capitalize text-secondary">
+                  {user?.role ?? "employee"}
+                </div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-primary">{user?.name ?? "Demo user"}</div>
-              <span className="mt-0.5 inline-flex rounded-full bg-surface px-2 py-0.5 text-[10px] capitalize text-secondary">
-                {user?.role ?? "employee"}
-              </span>
+            
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ThemeSwitcher compact />
+              <button
+                className="flex size-8 items-center justify-center rounded-[var(--radius-control)] border border-transparent text-secondary transition hover:border-line-strong hover:bg-raised hover:text-primary"
+                onClick={() => {
+                  logout();
+                  router.push("/login");
+                }}
+                title="Sign out"
+              >
+                <svg viewBox="0 0 16 16" fill="none" className="size-3.5" aria-hidden="true">
+                  <path d="M6 14H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M11 11.5l3.5-3.5L11 4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M14.5 8H6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             </div>
           </div>
-          <button
-            className="w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-secondary transition hover:bg-raised hover:text-primary"
-            onClick={() => {
-              logout();
-              router.push("/login");
-            }}
-          >
-            Sign out
-          </button>
         </div>
       </aside>
     </>
