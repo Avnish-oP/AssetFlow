@@ -14,7 +14,7 @@ from schemas.org import EmployeeCreate, EmployeeUpdate, RoleUpdate
 router = APIRouter(prefix="/employees", tags=["employees"])
 
 
-@router.get("", response_model=list[UserResponse], dependencies=[Depends(require_role("admin", "asset_manager", "dept_head"))])
+@router.get("", response_model=list[UserResponse])
 async def list_employees(db: Annotated[AsyncSession, Depends(get_db)], user: Annotated[User, Depends(get_current_user)]):
     stmt = select(User).order_by(User.name)
     if user.role == "dept_head":
