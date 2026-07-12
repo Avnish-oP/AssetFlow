@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 
 const items: { label: string; href: string; icon: React.ReactNode }[] = [
@@ -106,7 +105,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const [open, setOpen] = useState(false);
 
   return (
     <aside className="fixed inset-y-0 left-0 flex w-[240px] flex-col border-r border-line bg-surface">
@@ -160,7 +158,6 @@ export function Sidebar() {
           Sign out
         </button>
       </div>
-      </aside>
-    </>
+    </aside>
   );
 }
