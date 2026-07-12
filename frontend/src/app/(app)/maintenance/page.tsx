@@ -11,7 +11,7 @@ import {
 } from "@dnd-kit/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
@@ -380,7 +380,7 @@ export default function MaintenancePage() {
 
       {showForm ? (
         <form
-          className="card-surface grid gap-3 p-4 md:grid-cols-2"
+          className="card-surface grid min-w-0 gap-3 overflow-hidden p-4 md:grid-cols-2"
           onSubmit={async (event) => {
             event.preventDefault();
             try {
@@ -411,14 +411,20 @@ export default function MaintenancePage() {
             <textarea className={`${inputClass} h-24 py-2`} name="issue_description" required />
           </FormField>
           <FormField label="Photo / document">
-            <input
-              className={inputClass}
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(event) => void onPhotoSelected(event.target.files?.[0] ?? null)}
-            />
+            <div className="min-w-0 overflow-hidden">
+              <input
+                className={fileInputClass}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(event) => void onPhotoSelected(event.target.files?.[0] ?? null)}
+              />
+            </div>
             {uploading ? <p className="mt-1 text-xs text-secondary">Uploading…</p> : null}
-            {photoUrl ? <p className="mt-1 truncate text-xs text-green">{photoUrl}</p> : null}
+            {photoUrl ? (
+              <p className="mt-1 truncate text-xs text-green" title={photoUrl}>
+                Uploaded
+              </p>
+            ) : null}
           </FormField>
           <FormField label="Or photo URL (optional)">
             <input

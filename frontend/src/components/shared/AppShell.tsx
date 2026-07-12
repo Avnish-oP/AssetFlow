@@ -20,7 +20,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <main className="min-h-screen bg-bg px-4 py-5 sm:px-6 lg:ml-[248px] lg:p-8">{children}</main>
+      <main className="min-h-screen max-w-[100vw] overflow-x-hidden bg-bg px-4 py-5 sm:px-6 lg:ml-[248px] lg:max-w-[calc(100vw-248px)] lg:p-8">
+        <div className="mx-auto w-full min-w-0 max-w-full">{children}</div>
+      </main>
     </>
   );
 }

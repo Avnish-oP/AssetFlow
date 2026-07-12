@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, apiUpload, type Asset } from "@/lib/api";
@@ -107,14 +107,15 @@ export default function AssetsPage() {
       </header>
 
       {canWrite ? (
-        <div className="card-surface grid gap-4 p-4">
+        <div className="card-surface grid gap-4 overflow-hidden p-4">
           <form
-            className="grid gap-3 md:grid-cols-3 lg:grid-cols-4"
+            className="grid min-w-0 gap-3 md:grid-cols-3 lg:grid-cols-4"
             onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
               await createAsset(new FormData(form));
               form.reset();
+              setPhotoUrl("");
             }}
           >
             <FormField label="Asset name">
@@ -151,16 +152,18 @@ export default function AssetsPage() {
               <input className={inputClass} name="location" />
             </FormField>
             <FormField label="Photo / document">
-              <input
-                className={inputClass}
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(event) => void onPhotoSelected(event.target.files?.[0] ?? null)}
-              />
+              <div className="min-w-0 overflow-hidden">
+                <input
+                  className={fileInputClass}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(event) => void onPhotoSelected(event.target.files?.[0] ?? null)}
+                />
+              </div>
               {uploading ? <p className="mt-1 text-xs text-secondary">Uploading…</p> : null}
               {photoUrl ? (
                 <p className="mt-1 truncate text-xs text-green" title={photoUrl}>
-                  Uploaded: {photoUrl}
+                  Uploaded
                 </p>
               ) : null}
             </FormField>
@@ -173,24 +176,24 @@ export default function AssetsPage() {
                 onChange={(event) => setPhotoUrl(event.target.value)}
               />
             </FormField>
-            <label className="flex items-center gap-2 pt-6 text-sm text-secondary">
+            <label className="flex min-w-0 items-center gap-2 pt-6 text-sm text-secondary">
               <input name="is_bookable" type="checkbox" /> Shared / bookable
             </label>
-            <button disabled={isSubmitting} className={`${buttonClass} mt-6 md:col-span-3`}>
+            <button disabled={isSubmitting} className={`${buttonClass} mt-6 md:col-span-2 lg:col-span-1`}>
               {isSubmitting ? "Registering..." : "+ Register asset"}
             </button>
           </form>
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex min-w-0 flex-wrap gap-3">
         <input
-          className={`${inputClass} w-80`}
+          className={`${inputClass} max-w-full sm:max-w-xs`}
           placeholder="Search by tag, serial, name, or QR value…"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select className={`${inputClass} max-w-[180px]`} value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select className={`${inputClass} max-w-full sm:max-w-[180px]`} value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="">All statuses</option>
           <option value="available">Available</option>
           <option value="allocated">Allocated</option>
@@ -200,7 +203,7 @@ export default function AssetsPage() {
           <option value="retired">Retired</option>
           <option value="disposed">Disposed</option>
         </select>
-        <select className={inputClass} value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+        <select className={`${inputClass} max-w-full sm:max-w-[200px]`} value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
           <option value="">All categories</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
@@ -209,7 +212,7 @@ export default function AssetsPage() {
           ))}
         </select>
         <input
-          className={`${inputClass} w-48`}
+          className={`${inputClass} max-w-full sm:max-w-[12rem]`}
           placeholder="Location"
           value={location}
           onChange={(event) => setLocation(event.target.value)}

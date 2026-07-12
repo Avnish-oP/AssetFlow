@@ -10,7 +10,7 @@ export function DataTable({
   const isEmpty = React.Children.count(children) === 0;
   return (
     <div className="card-surface overflow-x-auto">
-      <table className="min-w-[480px] w-full border-collapse text-left text-sm">
+      <table className="w-full min-w-0 border-collapse text-left text-sm md:min-w-[480px]">
         <thead>
           <tr className="border-b border-line text-xs text-secondary bg-surface-raised">
             {headers.map((header) => (
