@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 
 from schemas.common import OrmModel
 
@@ -38,6 +38,13 @@ class CategoryResponse(OrmModel):
     id: int
     name: str
     custom_fields: dict
+
+
+class EmployeeCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
+    department_id: int | None = None
 
 
 class EmployeeUpdate(BaseModel):

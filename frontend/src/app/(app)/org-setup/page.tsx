@@ -6,7 +6,7 @@ import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/comp
 import { StatusPill } from "@/components/shared/StatusPill";
 import { apiFetch, type User } from "@/lib/api";
 
-type Department = { id: number; name: string; status: string };
+type Department = { id: number; name: string; status: string; head_id?: number | null; parent_department_id?: number | null };
 type Category = { id: number; name: string; custom_fields: Record<string, unknown> };
 
 export default function OrgSetupPage() {
@@ -14,11 +14,26 @@ export default function OrgSetupPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
+  const [error, setError] = useState("");
+
+  async function refresh() {
+    setError("");
+    try {
+      const [nextDepartments, nextCategories, nextEmployees] = await Promise.all([
+        apiFetch<Department[]>("/departments"),
+        apiFetch<Category[]>("/categories"),
+        apiFetch<User[]>("/employees"),
+      ]);
+      setDepartments(nextDepartments);
+      setCategories(nextCategories);
+      setEmployees(nextEmployees);
+    } catch {
+      setError("Could not load organization data. Check that you are signed in as admin/manager.");
+    }
+  }
 
   useEffect(() => {
-    apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([{ id: 1, name: "Engineering", status: "active" }]));
-    apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([{ id: 1, name: "Laptop", custom_fields: { warranty_months: 36 } }]));
-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.com", role: "employee", status: "active" }]));
+    void refresh();
   }, []);
 
   async function createDepartment(form: FormData) {
@@ -26,9 +41,41 @@ export default function OrgSetupPage() {
     setDepartments((current) => [item, ...current]);
   }
 
+  async function deactivateDepartment(department: Department) {
+    const updated = await apiFetch<Department>(`/departments/${department.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: department.status === "active" ? "inactive" : "active" }),
+    });
+    setDepartments((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+  }
+
+  async function deleteDepartment(department: Department) {
+    await apiFetch(`/departments/${department.id}`, { method: "DELETE" });
+    setDepartments((current) => current.filter((item) => item.id !== department.id));
+  }
+
   async function createCategory(form: FormData) {
     const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
     setCategories((current) => [item, ...current]);
+  }
+
+  async function deleteCategory(category: Category) {
+    await apiFetch(`/categories/${category.id}`, { method: "DELETE" });
+    setCategories((current) => current.filter((item) => item.id !== category.id));
+  }
+
+  async function createEmployee(form: FormData) {
+    const departmentValue = String(form.get("department_id") || "");
+    const item = await apiFetch<User>("/employees", {
+      method: "POST",
+      body: JSON.stringify({
+        name: form.get("name"),
+        email: form.get("email"),
+        password: form.get("password"),
+        department_id: departmentValue ? Number(departmentValue) : null,
+      }),
+    });
+    setEmployees((current) => [item, ...current]);
   }
 
   async function promote(employee: User, role: string) {
@@ -36,12 +83,26 @@ export default function OrgSetupPage() {
     setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
   }
 
+  async function toggleEmployeeStatus(employee: User) {
+    const updated = await apiFetch<User>(`/employees/${employee.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: employee.status === "active" ? "inactive" : "active" }),
+    });
+    setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+  }
+
+  async function deleteEmployee(employee: User) {
+    await apiFetch(`/employees/${employee.id}`, { method: "DELETE" });
+    setEmployees((current) => current.filter((item) => item.id !== employee.id));
+  }
+
   return (
     <div className="grid gap-6">
       <header>
         <h1 className="text-xl font-semibold">Organization setup</h1>
-        <p className="text-sm text-secondary">Departments, categories, and employee roles.</p>
+        <p className="text-sm text-secondary">Departments, categories, and employee directory.</p>
       </header>
+      {error ? <p className="text-sm text-red">{error}</p> : null}
       <div className="flex gap-2">
         {["departments", "categories", "employees"].map((item) => (
           <button key={item} className={tab === item ? buttonClass : secondaryButtonClass} onClick={() => setTab(item)}>
@@ -49,38 +110,111 @@ export default function OrgSetupPage() {
           </button>
         ))}
       </div>
+
       {tab === "departments" ? (
-        <SectionForm label="Department name" onSubmit={createDepartment} />
-      ) : tab === "categories" ? (
-        <SectionForm label="Category name" onSubmit={createCategory} />
+        <>
+          <SectionForm label="Department name" onSubmit={createDepartment} />
+          <DataTable headers={["Name", "Status", "Actions"]}>
+            {departments.map((department) => (
+              <tr key={department.id}>
+                <td className="px-4 py-3">{department.name}</td>
+                <td className="px-4 py-3">
+                  <StatusPill value={department.status} />
+                </td>
+                <td className="space-x-2 px-4 py-3">
+                  <button className={secondaryButtonClass} onClick={() => void deactivateDepartment(department)}>
+                    {department.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                  <button className={secondaryButtonClass} onClick={() => void deleteDepartment(department)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </>
       ) : null}
-      {tab === "departments" ? (
-        <DataTable headers={["Name", "Status"]}>
-          {departments.map((department) => (
-            <tr key={department.id}><td className="px-4 py-3">{department.name}</td><td className="px-4 py-3"><StatusPill value={department.status} /></td></tr>
-          ))}
-        </DataTable>
-      ) : tab === "categories" ? (
-        <DataTable headers={["Name", "Custom fields"]}>
-          {categories.map((category) => (
-            <tr key={category.id}><td className="px-4 py-3">{category.name}</td><td className="px-4 py-3 text-secondary">{Object.keys(category.custom_fields).join(", ") || "None"}</td></tr>
-          ))}
-        </DataTable>
-      ) : (
-        <DataTable headers={["Name", "Email", "Role", "Actions"]}>
-          {employees.map((employee) => (
-            <tr key={employee.id}>
-              <td className="px-4 py-3">{employee.name}</td>
-              <td className="px-4 py-3 text-secondary">{employee.email}</td>
-              <td className="px-4 py-3"><StatusPill value={employee.role} /></td>
-              <td className="space-x-2 px-4 py-3">
-                <button className={secondaryButtonClass} onClick={() => promote(employee, "dept_head")}>Dept head</button>
-                <button className={secondaryButtonClass} onClick={() => promote(employee, "asset_manager")}>Asset manager</button>
-              </td>
-            </tr>
-          ))}
-        </DataTable>
-      )}
+
+      {tab === "categories" ? (
+        <>
+          <SectionForm label="Category name" onSubmit={createCategory} />
+          <DataTable headers={["Name", "Custom fields", "Actions"]}>
+            {categories.map((category) => (
+              <tr key={category.id}>
+                <td className="px-4 py-3">{category.name}</td>
+                <td className="px-4 py-3 text-secondary">{Object.keys(category.custom_fields).join(", ") || "None"}</td>
+                <td className="px-4 py-3">
+                  <button className={secondaryButtonClass} onClick={() => void deleteCategory(category)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </>
+      ) : null}
+
+      {tab === "employees" ? (
+        <>
+          <form
+            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-5"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              await createEmployee(new FormData(event.currentTarget));
+              event.currentTarget.reset();
+            }}
+          >
+            <FormField label="Name">
+              <input className={inputClass} name="name" required />
+            </FormField>
+            <FormField label="Email">
+              <input className={inputClass} name="email" type="email" required />
+            </FormField>
+            <FormField label="Temp password">
+              <input className={inputClass} name="password" type="password" minLength={6} required />
+            </FormField>
+            <FormField label="Department">
+              <select className={inputClass} name="department_id" defaultValue="">
+                <option value="">Unassigned</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <button className={`${buttonClass} mt-6`}>Add employee</button>
+          </form>
+          <DataTable headers={["Name", "Email", "Role", "Status", "Actions"]}>
+            {employees.map((employee) => (
+              <tr key={employee.id}>
+                <td className="px-4 py-3">{employee.name}</td>
+                <td className="px-4 py-3 text-secondary">{employee.email}</td>
+                <td className="px-4 py-3">
+                  <StatusPill value={employee.role} />
+                </td>
+                <td className="px-4 py-3">
+                  <StatusPill value={employee.status} />
+                </td>
+                <td className="space-x-2 px-4 py-3">
+                  <button className={secondaryButtonClass} onClick={() => void promote(employee, "dept_head")}>
+                    Dept head
+                  </button>
+                  <button className={secondaryButtonClass} onClick={() => void promote(employee, "asset_manager")}>
+                    Asset manager
+                  </button>
+                  <button className={secondaryButtonClass} onClick={() => void toggleEmployeeStatus(employee)}>
+                    {employee.status === "active" ? "Deactivate" : "Activate"}
+                  </button>
+                  <button className={secondaryButtonClass} onClick={() => void deleteEmployee(employee)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -96,10 +230,11 @@ function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: Form
       }}
     >
       <div className="flex-1">
-        <FormField label={label}><input className={inputClass} name="name" required /></FormField>
+        <FormField label={label}>
+          <input className={inputClass} name="name" required />
+        </FormField>
       </div>
       <button className={buttonClass}>Add</button>
     </form>
   );
 }
-

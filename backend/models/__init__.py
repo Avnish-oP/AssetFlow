@@ -1,6 +1,6 @@
 from models.allocation import Allocation, TransferRequest
 from models.asset import Asset, AssetCategory
-from models.audit import ActivityLog, AuditCycle, AuditItem, Notification
+from models.audit import ActivityLog, AuditCycle, AuditCycleAuditor, AuditItem, Notification
 from models.booking import Booking
 from models.department import Department
 from models.maintenance import MaintenanceRequest
@@ -12,6 +12,7 @@ __all__ = [
     "Asset",
     "AssetCategory",
     "AuditCycle",
+    "AuditCycleAuditor",
     "AuditItem",
     "Booking",
     "Department",

@@ -6,12 +6,12 @@ export function DataTable({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-      <table className="min-w-[480px] w-full border-collapse text-left text-sm">
+    <div className="card-surface overflow-hidden">
+      <table className="w-full border-collapse text-left text-sm">
         <thead>
           <tr className="border-b border-line text-xs text-secondary">
             {headers.map((header) => (
-              <th key={header} className="px-4 py-3 font-normal">
+              <th key={header} className="px-4 py-3.5 font-normal">
                 {header}
               </th>
             ))}
@@ -23,3 +23,12 @@ export function DataTable({
   );
 }
 
+export function TableRow({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <tr className={`row-hover ${className}`}>{children}</tr>;
+}
