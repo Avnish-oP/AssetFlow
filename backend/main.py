@@ -10,11 +10,13 @@ from api.routes import (
     categories,
     departments,
     employees,
+    notifications,
+    reports,
     maintenance,
-    stubs,
     transfers,
 )
 from core.config import get_settings
+from jobs.overdue_scanner import start_overdue_scanner, stop_overdue_scanner
 
 settings = get_settings()
 
@@ -37,8 +39,18 @@ app.include_router(transfers.router)
 app.include_router(bookings.router)
 app.include_router(maintenance.router)
 app.include_router(audits.router)
-app.include_router(stubs.stub_router("/reports", "reports"))
-app.include_router(stubs.stub_router("/notifications", "notifications"))
+app.include_router(reports.router)
+app.include_router(notifications.router)
+
+
+@app.on_event("startup")
+async def _startup_jobs():
+    start_overdue_scanner()
+
+
+@app.on_event("shutdown")
+async def _shutdown_jobs():
+    stop_overdue_scanner()
 
 
 @app.get("/health")

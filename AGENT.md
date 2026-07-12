@@ -1,100 +1,71 @@
 # AGENT.md — AssetFlow build tracker
 
-Read `README.md` first — it has the architecture and the *why*. This file only tracks *current state*: who owns what right now, what's done, what's blocked, and decisions made mid-build that aren't in README yet.
+Read `README.md` first — architecture and *why*. This file tracks *current state* only.
 
-**Rules for anyone (human or agent) working from this file:**
-1. Check a box only when the thing actually works end-to-end (backend endpoint returns real data AND frontend renders it), not when code is written.
-2. One file, one owner, at a time — see ownership table. Need to touch someone else's file? Ping them first, don't just edit it.
-3. Stuck on the same error for 2+ attempts → stop, write it in **Blockers** below, ask for help. Don't keep grinding silently.
-4. Log every decision that changes or adds to what README says — append to **Decision Log**, never edit README mid-build.
-5. Update this file immediately after finishing a checklist item, not in a batch at the end.
-
----
-
-## Module ownership (right now)
-
-| Module / files | Owner | Status |
-|---|---|---|
-| `apps/api/app/models/*`, `alembic/*` | — | not started |
-| `apps/api/app/routers/auth.py` | — | not started |
-| `apps/api/app/routers/{departments,categories,employees}.py` | — | not started |
-| `apps/api/app/routers/assets.py` | — | not started |
-| `apps/api/app/routers/allocations.py`, `transfers.py` + `services/transitions.py` | — | not started |
-| `apps/api/app/routers/bookings.py` | — | not started |
-| `apps/api/app/routers/maintenance.py` | — | not started |
-| `apps/api/app/routers/audits.py` | — | not started |
-| `apps/api/app/routers/reports.py`, `notifications.py`, `jobs/overdue_scanner.py` | — | not started |
-| `apps/web` — Screens 1–4 | — | not started |
-| `apps/web` — Screens 5–6 | — | not started |
-| `apps/web` — Screen 7 | — | not started |
-| `apps/web` — Screens 8–10 | — | not started |
-
-Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it stays the source of truth.
+**Rules:**
+1. Check a box only when it works end-to-end (live API + frontend), not when code is merely written.
+2. Stuck 2+ attempts → log in **Blockers**, ask for help.
+3. Decisions that change README → append to **Decision log** (don't edit README mid-build).
 
 ---
 
 ## Phase checklist
 
-**Phase 0 — Setup (target 0:30)**
-- [x] Schema agreed and committed (`backend/infra/postgres/init.sql` — no separate `docs/schema.sql`)
-- [x] OpenAPI reachable (`/openapi.json`); all 12 routers mounted (core live, maintenance/audits/reports/notifications still 501 stubs)
-- [x] `docker compose up` works (postgres, redis, minio reachable)
-- [ ] TS client generated from OpenAPI stub (still hand-written `frontend/src/lib/api.ts`)
-- [x] Next.js sidebar shell matches `DESIGN.md` on all routes
+**Phase 0 — Setup**
+- [x] Schema in `backend/infra/postgres/init.sql` (no `docs/schema.sql`)
+- [x] OpenAPI reachable; all 12 routers mounted and live
+- [x] `docker compose up` (postgres, redis, minio)
+- [ ] Generated TS client from OpenAPI (still hand-written `frontend/src/lib/api.ts`)
+- [x] Next.js sidebar shell matches `DESIGN.md`
 
-**Phase 1 — Core CRUD + the two conflict rules (target 2:30)**
-- [x] Auth: signup (role=employee only), login, JWT, forgot password stub
-- [x] Departments / Categories / Employees CRUD (Screen 3)
-- [x] Admin can promote employee → dept head / asset manager
-- [x] Assets: register w/ auto tag, search/filter, directory (Screen 4)
-- [x] Allocation conflict block works (unique partial index + 409 + "currently held by" UI)
-- [x] Booking overlap block works (GIST exclude constraint + 409 + conflict UI)
+**Phase 1 — Core CRUD + conflict rules**
+- [x] Auth: signup (employee only), login, JWT, forgot-password stub
+- [x] Departments / Categories / Employees CRUD
+- [x] Admin promote → dept head / asset manager
+- [x] Assets: register + auto tag, search/filter, directory
+- [x] Allocation conflict (unique partial index + 409 + UI)
+- [x] Booking overlap (GIST exclude + 409 + UI)
 
-**Phase 2 — Workflows (target 4:00)**
-- [x] Transfer request: requested → approved → re-allocated, history updates
-- [x] Return flow: condition notes, asset reverts to Available
-- [x] Maintenance: pending → approved → technician assigned → in progress → resolved, kanban UI, asset status auto-flips
-- [x] Audit cycle: create, assign auditors, verify items, close cycle, discrepancy report, missing → asset status = Lost
+**Phase 2 — Workflows**
+- [x] Transfer: requested → approved → complete (re-allocates on complete)
+- [x] Return flow: condition notes → asset Available
+- [x] Maintenance kanban + asset status auto-flip
+- [x] Audit cycle: verify / missing→Lost, discrepancy report, close
 
-**Phase 3 — Reports, notifications, dashboard (target 5:30)**
-- [ ] Dashboard KPI cards live (available/allocated/maintenance/bookings/transfers/returns)
-- [ ] Overdue returns/bookings auto-flagged (APScheduler job running)
-- [ ] Notifications feed + polling
-- [ ] Reports: utilization, most-used/idle, maintenance frequency, due-for-retirement, export
+**Phase 3 — Reports, notifications, dashboard**
+- [x] Dashboard KPI cards live
+- [x] Overdue scanner (APScheduler)
+- [x] Notifications feed + polling
+- [ ] Reports fully correct (UI + `/reports` live; allocation/booking/transfer totals still wrong — queried from assets)
 
-**Phase 4 — Integration & demo (target 7:00)**
-- [ ] All mocks removed, everything on live data
-- [x] `seed.py` demo dataset loaded (Priya Shah / AF-0114 / Room B2 scenario)
-- [ ] Role-based UI gating verified for all 4 roles
-- [ ] Demo script (README §9) rehearsed once, end to end, no blockers
+**Phase 4 — Integration & demo**
+- [x] App pages on live API (no mock datasets; `stubs.py` unused)
+- [x] `backend/seed.py` demo dataset (Priya Shah / AF-0114 / Room B2)
+- [ ] Role-based UI gating for all 4 roles (API `require_role` only today)
+- [ ] Demo script (README §9) rehearsed end-to-end
+
+---
+
+## Remaining work (priority)
+
+1. Fix reports summary counts (allocations / bookings / transfers)
+2. Role-based UI gating in sidebar + admin actions
+3. Optional: generate OpenAPI TS client (or drop the checklist item and keep `api.ts`)
+4. Demo rehearsal
 
 ---
 
 ## Decision log
 
-*(append-only, newest on top, one line each: `HH:MM — decision — why`)*
+*(append-only, newest on top)*
 
-- 2026-07-12 — Phase 0 marked: schema/OpenAPI/docker/sidebar done; OpenAPI TS client still pending (hand-written api.ts).
-- 2026-07-12 — finished Phase 1 gaps: employees POST/DELETE + org-setup CRUD UI; booking day schedule wired to `/bookings/slots` with real overlap preview/409 UI.
-- 2026-07-12 — `backend/seed.py` is the single source of demo data; `init.sql` is schema-only. Re-run `python seed.py` anytime to wipe + reload.
-- 2026-07-12 — backend dependencies are tracked in `backend/requirements.txt` — no Python project manifest existed yet.
-- 2026-07-12 — raw SQL bootstrap stays in `backend/infra/postgres/init.sql` and docker-compose mounts that path — fastest path for the hackathon schema and DB-level constraints.
-- `docker-compose.yml` covers postgres/redis/minio only — FastAPI stays un-dockerized until the API is stable, to keep `uvicorn --reload` fast during the build. Add an `api` service + `apps/api/Dockerfile` later, not now.
-- Backend isn't strictly one-owner: any full-stack dev comfortable in FastAPI can pick up a second router (maintenance/reports preferred — see README §7) after their own screens are wired, instead of staying frontend-only for the full 2.5–7h block.
-- —
+- 2026-07-12 — cleaned AGENT.md: dropped stale `apps/api`/`apps/web` ownership table; Phase 2–3 marked done; reports totals flagged partial.
+- 2026-07-12 — `backend/seed.py` is demo data source; `init.sql` is schema-only.
+- 2026-07-12 — repo layout is `backend/` + `frontend/` (not README's `apps/*` paths).
+- 2026-07-12 — docker-compose = postgres/redis/minio only; FastAPI runs locally via uvicorn.
 
 ---
 
-## Blockers / open questions
-
-*(remove when resolved; if stuck 2+ attempts, it belongs here, not in your head)*
-
-- —
-
----
-
-## API contract changes since README was written
-
-*(anyone changing a shape in `schemas/` that another module depends on — log it here so nobody's frontend silently breaks)*
+## Blockers
 
 - —
