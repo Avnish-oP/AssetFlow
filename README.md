@@ -217,7 +217,24 @@ Adjust freely if the 4th person's actual skills differ — the point is *module 
 
 ## 9. Seed data & demo script
 
-`seed.py` recreates the exact examples the problem statement itself uses — Priya Shah / Laptop AF-0114 / Engineering, Room B2 / 9:00–10:00 — so the demo *is* the spec, which reads as deliberate rather than improvised.
+`backend/seed.py` wipes application tables and recreates the exact examples the problem statement itself uses — Priya Shah / Laptop AF-0114 / Engineering, Room B2 / 9:00–10:00 — so the demo *is* the spec.
+
+```bash
+cd backend && python seed.py
+```
+
+All seeded accounts use password `password`:
+
+| Email | Role |
+|---|---|
+| `admin@assetflow.dev` | admin |
+| `meera@assetflow.dev` | asset_manager |
+| `ravi@assetflow.dev` | dept_head |
+| `priya@assetflow.dev` | employee |
+| `amit@assetflow.dev` | employee |
+| `neha@assetflow.dev` | employee |
+
+Assets start `available` (AF-0114, AF-0062, AF-0108, AF-ROOM-B2). Allocations / bookings / maintenance / audits are left empty so the steps below can be walked live.
 
 1. Login as Admin → Org Setup → promote an employee to Asset Manager (proves no self-elevation).
 2. Register a new asset → appears `Available` with an auto-generated tag.
@@ -237,9 +254,9 @@ Adjust freely if the 4th person's actual skills differ — the point is *module 
 git clone <repo> && cd assetflow
 cp .env.example .env
 docker compose up -d          # postgres, redis, minio
-cd apps/api && alembic upgrade head && python seed.py
-uvicorn app.main:app --reload # http://localhost:8000/docs
-cd ../web && npm install && npm run dev  # http://localhost:3000
+cd backend && python seed.py  # wipe + load demo dataset (README §9)
+uvicorn main:app --reload     # http://localhost:8000/docs
+cd ../frontend && npm install && npm run dev  # http://localhost:3000
 ```
 
 ---

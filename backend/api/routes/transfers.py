@@ -9,6 +9,7 @@ from core.security import get_current_user, require_role
 from models.allocation import Allocation, TransferRequest
 from models.user import User
 from schemas.allocation import TransferCreate, TransferResponse
+from services.transfer_service import act_on_transfer
 
 router = APIRouter(prefix="/transfers", tags=["transfers"])
 
@@ -39,15 +40,13 @@ async def create_transfer(
 
 
 @router.post("/{transfer_id}/{action}", response_model=TransferResponse, dependencies=[Depends(require_role("admin", "asset_manager"))])
-async def act_on_transfer(transfer_id: int, action: str, db: Annotated[AsyncSession, Depends(get_db)], user: Annotated[User, Depends(get_current_user)]):
+async def transfer_action(
+    transfer_id: int,
+    action: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
     transfer = await db.get(TransferRequest, transfer_id)
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
-    if action not in {"approve", "reject", "complete"}:
-        raise HTTPException(status_code=400, detail="Invalid action")
-    transfer.status = {"approve": "approved", "reject": "rejected", "complete": "completed"}[action]
-    transfer.approved_by = user.id if action in {"approve", "complete"} else None
-    await db.commit()
-    await db.refresh(transfer)
-    return transfer
-
+    return await act_on_transfer(db, transfer, action, actor_id=user.id)

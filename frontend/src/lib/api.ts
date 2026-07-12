@@ -49,6 +49,8 @@ export type Allocation = {
   status: string;
   allocated_at: string;
   expected_return_date?: string | null;
+  returned_at?: string | null;
+  return_condition_notes?: string | null;
 };
 
 export type Booking = {
@@ -60,3 +62,86 @@ export type Booking = {
   end: string;
 };
 
+export type TransferRequest = {
+  id: number;
+  asset_id: number;
+  from_holder_id?: number | null;
+  to_holder_id: number;
+  reason: string;
+  status: string;
+  requested_by: number;
+  approved_by?: number | null;
+};
+
+export type MaintenanceRequest = {
+  id: number;
+  asset_id: number;
+  raised_by: number;
+  issue_description: string;
+  priority: string;
+  photo_url?: string | null;
+  status: string;
+  approved_by?: number | null;
+  technician_name?: string | null;
+  resolved_at?: string | null;
+  created_at: string;
+  asset_tag?: string | null;
+  asset_name?: string | null;
+};
+
+export type KanbanBoard = {
+  columns: { status: string; count: number; items: MaintenanceRequest[] }[];
+};
+
+export type AuditCycle = {
+  id: number;
+  name: string;
+  scope_department_id?: number | null;
+  scope_location?: string | null;
+  start_date: string;
+  end_date: string;
+  status: string;
+  created_by: number;
+  auditor_ids: number[];
+  total_items: number;
+  verified_count: number;
+  missing_count: number;
+  damaged_count: number;
+  pending_count: number;
+};
+
+export type AuditItem = {
+  id: number;
+  cycle_id: number;
+  asset_id: number;
+  expected_location?: string | null;
+  verification_status: string;
+  notes?: string | null;
+  verified_by?: number | null;
+  verified_at?: string | null;
+  asset_tag?: string | null;
+  asset_name?: string | null;
+  asset_condition?: string | null;
+};
+
+export type AuditCycleDetail = AuditCycle & {
+  items: AuditItem[];
+};
+
+export type DiscrepancyReport = {
+  cycle_id: number;
+  cycle_name: string;
+  missing_count: number;
+  damaged_count: number;
+  verified_count: number;
+  pending_count: number;
+  items: {
+    item_id: number;
+    asset_id: number;
+    asset_tag?: string | null;
+    asset_name?: string | null;
+    verification_status: string;
+    notes?: string | null;
+    expected_location?: string | null;
+  }[];
+};

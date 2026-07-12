@@ -1,7 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import allocations, assets, auth, bookings, categories, departments, employees, stubs, transfers
+from api.routes import (
+    allocations,
+    assets,
+    audits,
+    auth,
+    bookings,
+    categories,
+    departments,
+    employees,
+    maintenance,
+    stubs,
+    transfers,
+)
 from core.config import get_settings
 
 settings = get_settings()
@@ -23,8 +35,8 @@ app.include_router(assets.router)
 app.include_router(allocations.router)
 app.include_router(transfers.router)
 app.include_router(bookings.router)
-app.include_router(stubs.stub_router("/maintenance", "maintenance"))
-app.include_router(stubs.stub_router("/audits", "audits"))
+app.include_router(maintenance.router)
+app.include_router(audits.router)
 app.include_router(stubs.stub_router("/reports", "reports"))
 app.include_router(stubs.stub_router("/notifications", "notifications"))
 

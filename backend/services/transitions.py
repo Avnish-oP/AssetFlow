@@ -36,6 +36,12 @@ TRANSITIONS = {
         "missing": set(),
         "damaged": set(),
     },
+    "transfer": {
+        "requested": {"approved", "rejected"},
+        "approved": {"completed"},
+        "rejected": set(),
+        "completed": set(),
+    },
 }
 
 
