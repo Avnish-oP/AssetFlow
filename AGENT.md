@@ -36,19 +36,19 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
 ## Phase checklist
 
 **Phase 0 — Setup (target 0:30)**
-- [ ] `docs/schema.sql` agreed and committed
-- [ ] OpenAPI contract stubbed (`/openapi.json` reachable, all 12 routers return `501`)
-- [ ] `docker compose up` works for everyone (postgres, redis, minio reachable)
-- [ ] TS client generated from OpenAPI stub
-- [ ] Next.js sidebar shell matches `DESIGN.md` on all routes
+- [x] Schema agreed and committed (`backend/infra/postgres/init.sql` — no separate `docs/schema.sql`)
+- [x] OpenAPI reachable (`/openapi.json`); all 12 routers mounted (core live, maintenance/audits/reports/notifications still 501 stubs)
+- [x] `docker compose up` works (postgres, redis, minio reachable)
+- [ ] TS client generated from OpenAPI stub (still hand-written `frontend/src/lib/api.ts`)
+- [x] Next.js sidebar shell matches `DESIGN.md` on all routes
 
 **Phase 1 — Core CRUD + the two conflict rules (target 2:30)**
-- [ ] Auth: signup (role=employee only), login, JWT, forgot password stub
-- [ ] Departments / Categories / Employees CRUD (Screen 3)
-- [ ] Admin can promote employee → dept head / asset manager
-- [ ] Assets: register w/ auto tag, search/filter, directory (Screen 4)
-- [ ] Allocation conflict block works (unique partial index + 409 + "currently held by" UI)
-- [ ] Booking overlap block works (GIST exclude constraint + 409 + conflict UI)
+- [x] Auth: signup (role=employee only), login, JWT, forgot password stub
+- [x] Departments / Categories / Employees CRUD (Screen 3)
+- [x] Admin can promote employee → dept head / asset manager
+- [x] Assets: register w/ auto tag, search/filter, directory (Screen 4)
+- [x] Allocation conflict block works (unique partial index + 409 + "currently held by" UI)
+- [x] Booking overlap block works (GIST exclude constraint + 409 + conflict UI)
 
 **Phase 2 — Workflows (target 4:00)**
 - [ ] Transfer request: requested → approved → re-allocated, history updates
@@ -74,6 +74,8 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
 
 *(append-only, newest on top, one line each: `HH:MM — decision — why`)*
 
+- 2026-07-12 — Phase 0 marked: schema/OpenAPI/docker/sidebar done; OpenAPI TS client still pending (hand-written api.ts).
+- 2026-07-12 — finished Phase 1 gaps: employees POST/DELETE + org-setup CRUD UI; booking day schedule wired to `/bookings/slots` with real overlap preview/409 UI.
 - 2026-07-12 — implemented Phase 1 in actual `backend/` + `frontend/` structure — repo does not use README's `apps/api` + `apps/web` paths.
 - 2026-07-12 — backend dependencies are tracked in `backend/requirements.txt` — no Python project manifest existed yet.
 - 2026-07-12 — raw SQL bootstrap stays in `backend/infra/postgres/init.sql` and docker-compose mounts that path — fastest path for the hackathon schema and DB-level constraints.

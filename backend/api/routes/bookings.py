@@ -1,4 +1,5 @@
 from typing import Annotated
+from datetime import date as date_type
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, text
@@ -20,8 +21,8 @@ def serialize_booking(booking: Booking) -> dict:
         "resource_id": booking.resource_id,
         "booked_by": booking.booked_by,
         "status": booking.status,
-        "start": booking.slot.lower if booking.slot else None,
-        "end": booking.slot.upper if booking.slot else None,
+        "start": booking.slot.lower.isoformat() if booking.slot and booking.slot.lower else None,
+        "end": booking.slot.upper.isoformat() if booking.slot and booking.slot.upper else None,
     }
 
 
@@ -40,19 +41,38 @@ async def book(payload: BookingCreate, db: Annotated[AsyncSession, Depends(get_d
 
 @router.get("/slots")
 async def slots(db: Annotated[AsyncSession, Depends(get_db)], resource_id: int, date: str = Query(...)):
+    try:
+        day = date_type.fromisoformat(date)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="date must be YYYY-MM-DD") from exc
+
     rows = await db.execute(
         text(
             """
-            SELECT id, resource_id, booked_by, status, lower(slot) AS start, upper(slot) AS "end"
-            FROM bookings
-            WHERE resource_id = :resource_id
-              AND date(lower(slot)) = (:date)::date
-            ORDER BY lower(slot)
+            SELECT b.id, b.resource_id, b.booked_by, u.name AS booked_by_name,
+                   b.status, lower(b.slot) AS start, upper(b.slot) AS "end"
+            FROM bookings b
+            JOIN users u ON u.id = b.booked_by
+            WHERE b.resource_id = :resource_id
+              AND b.status != 'cancelled'
+              AND lower(b.slot)::date = :day
+            ORDER BY lower(b.slot)
             """
         ),
-        {"resource_id": resource_id, "date": date},
+        {"resource_id": resource_id, "day": day},
     )
-    return [dict(row) for row in rows.mappings().all()]
+    return [
+        {
+            "id": row["id"],
+            "resource_id": row["resource_id"],
+            "booked_by": row["booked_by"],
+            "booked_by_name": row["booked_by_name"],
+            "status": row["status"],
+            "start": row["start"].isoformat() if row["start"] else None,
+            "end": row["end"].isoformat() if row["end"] else None,
+        }
+        for row in rows.mappings().all()
+    ]
 
 
 @router.post("/{booking_id}/cancel")
