@@ -6,7 +6,8 @@ import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { DatePicker } from "@/components/shared/DatePicker";
 import { Select } from "@/components/shared/Select";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
-import { Modal, PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
+import { Modal, PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";
+import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import {
   apiFetch,
@@ -48,9 +49,6 @@ export default function AllocationsPage() {
   const [returnNotes, setReturnNotes] = useState("");
   const [returnCondition, setReturnCondition] = useState("good");
   const [message, setMessage] = useState<string | null>(null);
-  const [transferAssetId, setTransferAssetId] = useState<number | "">("");
-  const [transferToId, setTransferToId] = useState<number | "">("");
-  const transferableAllocations = allocations.filter((a) => a.status === "active");
 
   async function refresh() {
     setLoadError(null);
@@ -316,29 +314,34 @@ export default function AllocationsPage() {
           </ConflictBanner>
           <Panel>
             <form
-            className="grid gap-3 md:grid-cols-[1fr_2fr_auto]"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              await submitConflictTransfer(new FormData(event.currentTarget));
-            }}
+              className="grid gap-3 md:grid-cols-[1fr_2fr_auto]"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                await submitConflictTransfer(new FormData(event.currentTarget));
+              }}
             >
-            <FormField label="Transfer to">
-              <Select
-                name="to_holder_id"
-                options={employees.map((employee) => ({
-                  value: String(employee.id),
-                  label: employee.name,
-                }))}
-                defaultValue={user?.id ? String(user.id) : employees[0] ? String(employees[0].id) : ""}
-              />
-            </FormField>
-            <FormField label="Reason">
-              <input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} />
-            </FormField>
-            <button disabled={isSubmitting} className={`${secondaryButtonClass} mt-6`}>
-              {isSubmitting ? "Submitting..." : "Submit transfer"}
-            </button>
-          </form>
+              <FormField label="Transfer to">
+                <Select
+                  name="to_holder_id"
+                  options={employees.map((employee) => ({
+                    value: String(employee.id),
+                    label: employee.name,
+                  }))}
+                  defaultValue={user?.id ? String(user.id) : employees[0] ? String(employees[0].id) : ""}
+                />
+              </FormField>
+              <FormField label="Reason">
+                <input
+                  className={inputClass}
+                  value={transferReason}
+                  onChange={(event) => setTransferReason(event.target.value)}
+                />
+              </FormField>
+              <button disabled={isSubmitting} className={`${secondaryButtonClass} mt-6`}>
+                {isSubmitting ? "Submitting..." : "Submit transfer"}
+              </button>
+            </form>
+          </Panel>
         </div>
       ) : null}
 
@@ -407,7 +410,7 @@ export default function AllocationsPage() {
                 <StatusPill value={transfer.status} />
               </td>
               <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-4">
                   {canApproveTransfer && transfer.status === "requested" ? (
                     <>
                       <button className="text-xs text-brand hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
