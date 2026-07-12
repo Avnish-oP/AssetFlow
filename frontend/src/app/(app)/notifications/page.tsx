@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { PageHeader, SectionHeader, SegmentedControl } from "@/components/shared/Layout";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { apiFetch, type ActivityLog, type AppNotification } from "@/lib/api";
 
@@ -65,47 +66,39 @@ export default function NotificationsPage() {
 
   return (
     <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Activity & notifications</h1>
-          <p className="text-sm text-secondary">Polling every 25s. {unread} unread.</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Activity & notifications"
+        description={`Polling every 25 seconds. ${unread} unread.`}
+        actions={
+          <>
           <button className={secondaryButtonClass} type="button" onClick={() => load()}>
             Refresh
           </button>
           <button className={buttonClass} type="button" onClick={() => markAllRead()} disabled={unread === 0}>
             Mark all read
           </button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {error ? <p className="text-sm text-red">{error}</p> : null}
 
       <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-medium">Notifications</h2>
-          {/* Tab filters */}
-          <div className="flex gap-1 rounded-lg border border-line bg-surface-raised p-1">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`rounded-md px-3 py-1 text-xs font-medium transition ${
-                  activeTab === tab.id
-                    ? "bg-surface text-primary shadow-sm"
-                    : "text-secondary hover:text-primary"
-                }`}
-              >
-                {tab.label}
-                {tab.id === "all" && unread > 0 ? (
+        <SectionHeader
+          title="Notifications"
+          actions={
+            <SegmentedControl
+              value={activeTab}
+              options={TABS}
+              onChange={setActiveTab}
+              getBadge={(tab) =>
+                tab === "all" && unread > 0 ? (
                   <span className="ml-1.5 rounded-full bg-red px-1.5 py-0.5 text-[10px] text-white">{unread}</span>
-                ) : null}
-              </button>
-            ))}
-          </div>
-        </div>
+                ) : null
+              }
+            />
+          }
+        />
         {filteredNotifications.length === 0 ? (
           <EmptyState title="No notifications in this category" description="Switch to All to see everything." />
         ) : (

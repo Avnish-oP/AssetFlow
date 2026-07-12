@@ -56,7 +56,7 @@ export default function LoginPage() {
       <div className="absolute right-4 top-4">
         <ThemeSwitcher />
       </div>
-      <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
+      <form onSubmit={submit} className="card-surface w-full max-w-sm p-6 shadow-sm">
         <div className="flex items-center gap-2">
           <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
           <h1 className="text-xl font-semibold">
@@ -94,7 +94,7 @@ export default function LoginPage() {
         </div>
 
         {showForgot ? (
-          <div className="mt-4 grid gap-3 rounded-lg border border-line bg-raised p-3">
+          <div className="mt-4 grid gap-3 rounded-[var(--radius-card)] border border-line bg-raised p-3">
             <FormField label="Account email">
               <input
                 className={inputClass}

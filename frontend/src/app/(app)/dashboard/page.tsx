@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { KpiCard } from "@/components/shared/KpiCard";
+import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { buttonClass, secondaryButtonClass } from "@/components/shared/FormField";
 import {
@@ -23,8 +25,6 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const canSeeKpis = can(user?.role, "dashboard_kpis");
   const canWriteAssets = can(user?.role, "assets_write");
-  const canRaise = can(user?.role, "maintenance_raise");
-  const canBook = can(user?.role, "bookings");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [returns, setReturns] = useState<
@@ -87,24 +87,33 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto grid max-w-[1600px] gap-6 pt-14 lg:pt-0">
-      <header className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-line bg-surface-raised px-5 py-4 sm:px-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-secondary">
-            {loading
-              ? "Loading operational status…"
-              : canSeeKpis
-                ? "Live KPIs from /reports — refreshes every 25s."
-                : "Notifications and returns for your account. Full KPIs require manager access."}
-          </p>
-        </div>
-        {summary ? (
-          <div className="text-xs text-secondary">
-            {summary.overdue_allocations} overdue · {summary.returned_this_week} returned this week ·{" "}
-            {summary.unread_notifications} unread
-          </div>
-        ) : null}
-      </header>
+      <PageHeader
+        title="Dashboard"
+        description={
+          loading
+            ? "Loading operational status..."
+            : canSeeKpis
+              ? "Live KPIs from reports, refreshed every 25 seconds."
+              : "Notifications and returns for your account. Full KPIs require manager access."
+        }
+        status={
+          summary ? (
+            <span className="text-xs text-secondary">
+              {summary.overdue_allocations} overdue · {summary.returned_this_week} returned this week ·{" "}
+              {summary.unread_notifications} unread
+            </span>
+          ) : null
+        }
+        actions={
+          <>
+            <button className={secondaryButtonClass} type="button" onClick={() => load()}>
+              Refresh
+            </button>
+            {canWriteAssets ? <Link className={buttonClass} href="/assets">Register asset</Link> : null}
+            {canSeeKpis ? <Link className={buttonClass} href="/reports">Open reports</Link> : null}
+          </>
+        }
+      />
 
       {canSeeKpis ? (
       <section className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
@@ -127,11 +136,6 @@ export default function DashboardPage() {
       ) : null}
 
       <section className="flex flex-wrap gap-2">
-        {can(user?.role, "assets_write") ? (
-          <a className={buttonClass} href="/assets">
-            + Register asset
-          </a>
-        ) : null}
         {can(user?.role, "bookings") ? (
           <a className={secondaryButtonClass} href="/bookings">
             Book resource
@@ -145,13 +149,11 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-medium">Unread notifications</h2>
-            <a href="/notifications" className="text-xs text-secondary hover:text-primary">
-              View all
-            </a>
-          </div>
+        <Panel>
+          <SectionHeader
+            title="Unread notifications"
+            actions={<a href="/notifications" className="text-xs text-secondary hover:text-primary">View all</a>}
+          />
           {notifications.length === 0 ? (
             <EmptyState title="No unread notifications" description="Workflow events will appear here." />
           ) : (
@@ -167,9 +169,9 @@ export default function DashboardPage() {
               ))}
             </DataTable>
           )}
-        </div>
-        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
-          <h2 className="mb-3 text-base font-medium">Upcoming returns</h2>
+        </Panel>
+        <Panel>
+          <SectionHeader title="Upcoming returns" />
           <DataTable headers={["Asset", "Holder", "Due", "Status"]}>
             {returns.length === 0 ? (
               <TableRow>
@@ -190,34 +192,8 @@ export default function DashboardPage() {
               ))
             )}
           </DataTable>
-        </div>
+        </Panel>
       </section>
-
-      <div className="flex flex-wrap gap-2">
-        <button className={secondaryButtonClass} type="button" onClick={() => load()}>
-          Refresh now
-        </button>
-        {canWriteAssets ? (
-          <a className={buttonClass} href="/assets">
-            Register asset
-          </a>
-        ) : null}
-        {canBook ? (
-          <a className={secondaryButtonClass} href="/bookings">
-            Book resource
-          </a>
-        ) : null}
-        {canRaise ? (
-          <a className={secondaryButtonClass} href="/maintenance">
-            Raise maintenance
-          </a>
-        ) : null}
-        {canSeeKpis ? (
-          <a className={buttonClass} href="/reports">
-            Open reports
-          </a>
-        ) : null}
-      </div>
     </div>
   );
 }

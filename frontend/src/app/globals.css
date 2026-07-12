@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Light — current warm ops console */
 :root,
 [data-theme="light"] {
   --bg: #f8f5ef;
@@ -26,7 +25,6 @@
   color-scheme: light;
 }
 
-/* Dark — DESIGN.md ops console */
 [data-theme="dark"] {
   --bg: #0a0a0b;
   --surface: #131316;
@@ -100,6 +98,11 @@ button {
   outline-color: var(--border-strong);
 }
 
+:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 2px;
+}
+
 @keyframes pulse-dot {
   0%,
   100% {
@@ -120,7 +123,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);
-  transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
   min-width: 0;
   max-width: 100%;
 }

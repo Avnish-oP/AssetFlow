@@ -37,7 +37,7 @@ function ResetPasswordForm() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-bg px-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
+      <form onSubmit={submit} className="card-surface w-full max-w-sm p-6 shadow-sm">
         <h1 className="text-xl font-semibold">Reset password</h1>
         <p className="mt-1 text-sm text-secondary">Paste the reset token and choose a new password.</p>
         <div className="mt-6 grid gap-4">

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { PageHeader, Panel, Toolbar } from "@/components/shared/Layout";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, apiUpload, type Asset } from "@/lib/api";
@@ -97,17 +98,17 @@ export default function AssetsPage() {
 
   return (
     <div className="grid gap-6">
-      <header>
-        <h1 className="text-xl font-semibold">Assets</h1>
-        <p className="text-sm text-secondary">
-          {canWrite
-            ? "Register assets (auto tag) and search the directory by tag, serial, or name."
-            : "Browse the asset directory (read-only)."}
-        </p>
-      </header>
+      <PageHeader
+        title="Assets"
+        description={
+          canWrite
+            ? "Register assets with automatic tags and search by tag, serial, QR value, or name."
+            : "Browse the asset directory in read-only mode."
+        }
+      />
 
       {canWrite ? (
-        <div className="card-surface grid gap-4 overflow-hidden p-4">
+        <Panel>
           <form
             className="grid min-w-0 gap-3 md:grid-cols-3 lg:grid-cols-4"
             onSubmit={async (event) => {
@@ -180,13 +181,13 @@ export default function AssetsPage() {
               <input name="is_bookable" type="checkbox" /> Shared / bookable
             </label>
             <button disabled={isSubmitting} className={`${buttonClass} mt-6 md:col-span-2 lg:col-span-1`}>
-              {isSubmitting ? "Registering..." : "+ Register asset"}
+              {isSubmitting ? "Registering..." : "Register asset"}
             </button>
           </form>
-        </div>
+        </Panel>
       ) : null}
 
-      <div className="flex min-w-0 flex-wrap gap-3">
+      <Toolbar>
         <input
           className={`${inputClass} max-w-full sm:max-w-xs`}
           placeholder="Search by tag, serial, name, or QR value…"
@@ -220,7 +221,7 @@ export default function AssetsPage() {
         <button className={secondaryButtonClass} type="button" onClick={() => load()}>
           Apply filters
         </button>
-      </div>
+      </Toolbar>
 
       {loadError ? (
         <EmptyState title="Could not load assets" description={loadError} action="Retry" onAction={() => load()} />
@@ -233,7 +234,7 @@ export default function AssetsPage() {
       {!loadError && assets.length > 0 ? (
         <DataTable headers={["Tag", "Name", "Category", "Location", "Condition", "Status", "Bookable"]}>
           {assets.map((asset) => (
-            <tr key={asset.id}>
+            <TableRow key={asset.id}>
               <td className="px-4 py-3">
                 <Link className="text-green hover:underline" href={`/assets/${asset.id}`}>
                   {asset.tag}
@@ -249,7 +250,7 @@ export default function AssetsPage() {
                 <StatusPill value={asset.status} />
               </td>
               <td className="px-4 py-3 text-secondary">{asset.is_bookable ? "Yes" : "No"}</td>
-            </tr>
+            </TableRow>
           ))}
         </DataTable>
       ) : null}

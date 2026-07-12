@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { buttonClass, dangerButtonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { PageHeader, Panel, SegmentedControl } from "@/components/shared/Layout";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type User } from "@/lib/api";
@@ -53,7 +54,7 @@ export default function OrgSetupPage() {
   if (!canManage) {
     return (
       <div className="grid gap-4">
-        <h1 className="text-xl font-semibold">Organization setup</h1>
+        <PageHeader title="Organization setup" />
         <EmptyState
           title="Insufficient permissions"
           description="Organization setup is limited to admin and asset managers."
@@ -208,23 +209,23 @@ export default function OrgSetupPage() {
 
   return (
     <div className="grid gap-6">
-      <header>
-        <h1 className="text-xl font-semibold">Organization setup</h1>
-        <p className="text-sm text-secondary">Departments, categories, and employee directory.</p>
-      </header>
+      <PageHeader title="Organization setup" description="Departments, categories, and employee directory." />
       {error ? <p className="text-sm text-red">{error}</p> : null}
-      <div className="flex gap-2">
-        {["departments", "categories", "employees"].map((item) => (
-          <button key={item} className={tab === item ? buttonClass : secondaryButtonClass} onClick={() => setTab(item)}>
-            {item}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        value={tab}
+        options={[
+          { id: "departments", label: "Departments" },
+          { id: "categories", label: "Categories" },
+          { id: "employees", label: "Employees" },
+        ]}
+        onChange={setTab}
+      />
 
       {tab === "departments" ? (
         <>
-          <form
-            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
+          <Panel>
+            <form
+            className="grid gap-3 md:grid-cols-4"
             onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
@@ -235,7 +236,7 @@ export default function OrgSetupPage() {
                 /* toast already shown */
               }
             }}
-          >
+            >
             <FormField label="Department name">
               <input className={inputClass} name="name" required />
             </FormField>
@@ -260,10 +261,11 @@ export default function OrgSetupPage() {
               </select>
             </FormField>
             <button className={`${buttonClass} mt-6`}>Add department</button>
-          </form>
+            </form>
+          </Panel>
           <DataTable headers={["Name", "Head", "Parent", "Status", "Actions"]}>
             {departments.map((department) => (
-              <tr key={department.id}>
+              <TableRow key={department.id}>
                 <td className="px-4 py-3">{department.name}</td>
                 <td className="px-4 py-3">
                   <select
@@ -310,11 +312,11 @@ export default function OrgSetupPage() {
                   <button className={secondaryButtonClass} onClick={() => void deactivateDepartment(department)}>
                     {department.status === "active" ? "Deactivate" : "Activate"}
                   </button>
-                  <button className={secondaryButtonClass} onClick={() => void deleteDepartment(department)}>
+                  <button className={dangerButtonClass} onClick={() => void deleteDepartment(department)}>
                     Delete
                   </button>
                 </td>
-              </tr>
+              </TableRow>
             ))}
           </DataTable>
         </>
@@ -322,8 +324,9 @@ export default function OrgSetupPage() {
 
       {tab === "categories" ? (
         <>
-          <form
-            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
+          <Panel>
+            <form
+            className="grid gap-3 md:grid-cols-4"
             onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
@@ -334,7 +337,7 @@ export default function OrgSetupPage() {
                 /* toast already shown */
               }
             }}
-          >
+            >
             <FormField label="Category name">
               <input className={inputClass} name="name" required />
             </FormField>
@@ -345,10 +348,11 @@ export default function OrgSetupPage() {
               <input className={inputClass} name="field_value" placeholder="e.g. 24" />
             </FormField>
             <button className={`${buttonClass} mt-6`}>Add category</button>
-          </form>
+            </form>
+          </Panel>
           <DataTable headers={["Name", "Custom fields", "Actions"]}>
             {categories.map((category) => (
-              <tr key={category.id}>
+              <TableRow key={category.id}>
                 <td className="px-4 py-3">{category.name}</td>
                 <td className="px-4 py-3">
                   <input
@@ -362,11 +366,11 @@ export default function OrgSetupPage() {
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <button className={secondaryButtonClass} onClick={() => void deleteCategory(category)}>
+                  <button className={dangerButtonClass} onClick={() => void deleteCategory(category)}>
                     Delete
                   </button>
                 </td>
-              </tr>
+              </TableRow>
             ))}
           </DataTable>
         </>
@@ -374,14 +378,15 @@ export default function OrgSetupPage() {
 
       {tab === "employees" ? (
         <>
-          <form
-            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-5"
+          <Panel>
+            <form
+            className="grid gap-3 md:grid-cols-5"
             onSubmit={async (event) => {
               event.preventDefault();
               await createEmployee(new FormData(event.currentTarget));
               event.currentTarget.reset();
             }}
-          >
+            >
             <FormField label="Name">
               <input className={inputClass} name="name" required />
             </FormField>
@@ -402,10 +407,11 @@ export default function OrgSetupPage() {
               </select>
             </FormField>
             <button className={`${buttonClass} mt-6`}>Add employee</button>
-          </form>
+            </form>
+          </Panel>
           <DataTable headers={["Name", "Email", "Department", "Role", "Status", "Actions"]}>
             {employees.map((employee) => (
-              <tr key={employee.id}>
+              <TableRow key={employee.id}>
                 <td className="px-4 py-3">{employee.name}</td>
                 <td className="px-4 py-3 text-secondary">{employee.email}</td>
                 <td className="px-4 py-3 text-secondary">{departmentName(employee.department_id)}</td>
@@ -429,11 +435,11 @@ export default function OrgSetupPage() {
                   <button className={secondaryButtonClass} onClick={() => void toggleEmployeeStatus(employee)}>
                     {employee.status === "active" ? "Deactivate" : "Activate"}
                   </button>
-                  <button className={secondaryButtonClass} onClick={() => void deleteEmployee(employee)}>
+                  <button className={dangerButtonClass} onClick={() => void deleteEmployee(employee)}>
                     Delete
                   </button>
                 </td>
-              </tr>
+              </TableRow>
             ))}
           </DataTable>
         </>

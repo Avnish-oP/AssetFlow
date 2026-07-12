@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { secondaryButtonClass } from "@/components/shared/FormField";
+import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { apiFetch, type Allocation, type Asset, type MaintenanceRequest } from "@/lib/api";
 
@@ -49,25 +50,21 @@ export default function AssetDetailPage() {
 
   return (
     <div className="grid gap-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs text-secondary">
+      <PageHeader
+        title={`${asset.tag} — ${asset.name}`}
+        eyebrow={
+          <>
             <Link href="/assets" className="hover:text-primary">
               Assets
             </Link>{" "}
             / {asset.tag}
-          </p>
-          <h1 className="mt-1 text-xl font-semibold">
-            {asset.tag} — {asset.name}
-          </h1>
-          <p className="text-sm text-secondary">
-            {asset.location ?? "No location"} · {asset.is_bookable ? "Bookable" : "Non-bookable"}
-          </p>
-        </div>
-        <StatusPill value={asset.status} />
-      </header>
+          </>
+        }
+        description={`${asset.location ?? "No location"} · ${asset.is_bookable ? "Bookable" : "Non-bookable"}`}
+        status={<StatusPill value={asset.status} />}
+      />
 
-      <section className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4">
+      <Panel className="grid gap-3 md:grid-cols-4">
         <div>
           <div className="text-xs text-secondary">Condition</div>
           <div className="text-sm">{asset.condition}</div>
@@ -111,16 +108,16 @@ export default function AssetDetailPage() {
             <p className="hidden text-xs text-secondary">{asset.photo_url}</p>
           </div>
         ) : null}
-      </section>
+      </Panel>
 
       <section>
-        <h2 className="mb-3 text-base font-medium">Allocation history</h2>
+        <SectionHeader title="Allocation history" />
         {allocations.length === 0 ? (
           <EmptyState title="No allocations yet" description="This asset has not been issued." />
         ) : (
           <DataTable headers={["Holder", "Status", "Allocated", "Expected return", "Returned"]}>
             {allocations.map((row) => (
-              <tr key={row.id}>
+              <TableRow key={row.id}>
                 <td className="px-4 py-3 text-secondary">{row.holder_user_id ?? "—"}</td>
                 <td className="px-4 py-3">
                   <StatusPill value={row.status} />
@@ -131,20 +128,20 @@ export default function AssetDetailPage() {
                   {row.returned_at ? new Date(row.returned_at).toLocaleString() : "—"}
                   {row.return_condition_notes ? ` · ${row.return_condition_notes}` : ""}
                 </td>
-              </tr>
+              </TableRow>
             ))}
           </DataTable>
         )}
       </section>
 
       <section>
-        <h2 className="mb-3 text-base font-medium">Maintenance history</h2>
+        <SectionHeader title="Maintenance history" />
         {maintenance.length === 0 ? (
           <EmptyState title="No maintenance requests" description="Repairs for this asset will appear here." />
         ) : (
           <DataTable headers={["Issue", "Priority", "Status", "Technician", "Opened"]}>
             {maintenance.map((row) => (
-              <tr key={row.id}>
+              <TableRow key={row.id}>
                 <td className="px-4 py-3">{row.issue_description}</td>
                 <td className="px-4 py-3">
                   <StatusPill value={row.priority} />
@@ -154,7 +151,7 @@ export default function AssetDetailPage() {
                 </td>
                 <td className="px-4 py-3 text-secondary">{row.technician_name ?? "—"}</td>
                 <td className="px-4 py-3 text-secondary">{new Date(row.created_at).toLocaleString()}</td>
-              </tr>
+              </TableRow>
             ))}
           </DataTable>
         )}

@@ -16,6 +16,7 @@ import {
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";
 import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
@@ -72,6 +73,7 @@ export default function ReportsPage() {
   const [heatmap, setHeatmap] = useState<BookingHeatmapReport | null>(null);
   const [deptAlloc, setDeptAlloc] = useState<DepartmentAllocationReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [todayMs] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     setError(null);
@@ -112,7 +114,7 @@ export default function ReportsPage() {
   if (!allowed) {
     return (
       <div className="grid gap-4">
-        <h1 className="text-xl font-semibold">Reports & analytics</h1>
+        <PageHeader title="Reports & analytics" />
         <EmptyState
           title="Insufficient permissions"
           description="Reports are available to admin, asset managers, and department heads."
@@ -126,17 +128,13 @@ export default function ReportsPage() {
     name: item.tag,
     requests: item.request_count,
   }));
-
   return (
     <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Reports & analytics</h1>
-          <p className="text-sm text-secondary">
-            Utilization, usage, maintenance, retirement, booking heatmap, and department allocations.
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Reports & analytics"
+        description="Utilization, usage, maintenance, retirement, booking heatmap, and department allocations."
+        actions={
+          <>
           <button className={secondaryButtonClass} type="button" onClick={() => load()}>
             Refresh
           </button>
@@ -162,14 +160,15 @@ export default function ReportsPage() {
           >
             Export CSV
           </button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {error ? <p className="text-sm text-red">{error}</p> : null}
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <div className="card-surface p-4">
-          <h2 className="mb-3 text-base font-medium">Utilization (14 days)</h2>
+        <Panel>
+          <SectionHeader title="Utilization (14 days)" />
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -185,9 +184,9 @@ export default function ReportsPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        <div className="card-surface p-4">
-          <h2 className="mb-3 text-base font-medium">Maintenance frequency</h2>
+        </Panel>
+        <Panel>
+          <SectionHeader title="Maintenance frequency" />
           <div className="h-64">
             {lineData.length === 0 ? (
               <EmptyState title="No maintenance history yet" />
@@ -205,12 +204,12 @@ export default function ReportsPage() {
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </Panel>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <div className="card-surface p-4">
-          <h2 className="mb-3 text-base font-medium">Resource booking heatmap (30 days)</h2>
+        <Panel>
+          <SectionHeader title="Resource booking heatmap (30 days)" />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] border-collapse text-xs">
               <thead>
@@ -246,7 +245,7 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Panel>
         <div>
           <h2 className="mb-3 text-base font-medium">Department-wise allocations</h2>
           <DataTable headers={["Department", "Active", "Overdue"]}>
@@ -324,7 +323,7 @@ export default function ReportsPage() {
           ) : (
             (retirement?.items ?? []).map((item) => {
               const ageDays = item.acquisition_date
-                ? Math.floor((Date.now() - new Date(item.acquisition_date).getTime()) / 86_400_000)
+                ? Math.floor((todayMs - new Date(item.acquisition_date).getTime()) / 86_400_000)
                 : null;
               const ageLabel = ageDays != null ? (ageDays >= 365 ? `${Math.floor(ageDays / 365)} yr` : `${ageDays} d`) : "—";
               return (

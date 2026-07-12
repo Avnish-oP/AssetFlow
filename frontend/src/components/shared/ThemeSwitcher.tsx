@@ -44,7 +44,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
       type="button"
       title={`Switch to ${isDark ? "light" : "dark"} theme`}
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="text-secondary hover:text-primary transition flex items-center justify-center"
+      className={`${compact ? "size-8" : "h-10 px-3"} rounded-[var(--radius-control)] border border-line bg-surface text-secondary transition hover:border-line-strong hover:bg-raised hover:text-primary flex items-center justify-center`}
     >
       {isDark ? OPTIONS[0].icon : OPTIONS[1].icon}
     </button>

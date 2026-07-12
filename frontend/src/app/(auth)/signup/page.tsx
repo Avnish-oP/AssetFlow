@@ -21,6 +21,7 @@ export default function SignupPage() {
     const password = String(data.get("password"));
     if (password !== String(data.get("confirm"))) {
       setError("Passwords do not match");
+      setIsSubmitting(false);
       return;
     }
     try {
@@ -38,7 +39,7 @@ export default function SignupPage() {
       <div className="absolute right-4 top-4">
         <ThemeSwitcher />
       </div>
-      <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
+      <form onSubmit={submit} className="card-surface w-full max-w-sm p-6 shadow-sm">
         <div className="flex items-center gap-2">
           <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
           <h1 className="text-xl font-semibold">
@@ -71,4 +72,3 @@ export default function SignupPage() {
     </main>
   );
 }
-
