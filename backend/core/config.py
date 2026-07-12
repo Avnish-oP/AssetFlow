@@ -7,11 +7,16 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://assetflow:assetflow@localhost:5434/assetflow"
     redis_url: str = "redis://localhost:6379/0"
     minio_endpoint: str = "localhost:9000"
+    minio_access_key: str = "assetflow"
+    minio_secret_key: str = "assetflow123"
     minio_bucket: str = "assetflow-assets"
+    minio_secure: bool = False
+    minio_public_base: str = "http://localhost:9000"
     jwt_secret: str = "assetflow-dev-secret-change-me"
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 60
     refresh_token_days: int = 7
+    password_reset_minutes: int = 30
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

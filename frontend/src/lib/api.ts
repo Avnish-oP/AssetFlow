@@ -22,6 +22,28 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return body as T;
 }
 
+/** Multipart upload — do not set Content-Type (browser sets boundary). */
+export async function apiUpload(
+  path: string,
+  file: File,
+  folder = "uploads",
+): Promise<{ url: string; filename?: string }> {
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("assetflow_access_token") : null;
+  const form = new FormData();
+  form.append("file", file);
+  const url = `${API_BASE}${path}?folder=${encodeURIComponent(folder)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: form,
+  });
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw { status: response.status, detail: body?.detail ?? body } satisfies ApiError;
+  }
+  return body as { url: string; filename?: string };
+}
+
 export type User = {
   id: number;
   name: string;

@@ -17,6 +17,7 @@ from api.routes import (
     notifications,
     reports,
     transfers,
+    uploads,
 )
 from core.config import get_settings
 from jobs.overdue_scanner import scan_overdue
@@ -56,6 +57,7 @@ app.include_router(maintenance.router)
 app.include_router(audits.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)
+app.include_router(uploads.router)
 
 
 @app.get("/health")

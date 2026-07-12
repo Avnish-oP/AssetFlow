@@ -81,6 +81,7 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 
 *(append-only, newest on top)*
 
+- 2026-07-12 — closed PS gaps: forgot/reset password, booking reschedule, MinIO uploads, dept_head transfer approve, employee returns, audit dept scope.
 - 2026-07-12 — merge origin/main: kept approve→maintenance flip + reject/notify; kept local heatmap/dept reports, smoke seed snapshot, asset detail links; combined org-setup head/parent + category fields.
 - 2026-07-12 — seed split: `seed.py` loads `seeds/smoke_snapshot.json`; `seed.py --clean` for live §9 walkthrough; `seed_export.py` re-captures local DB.
 - 2026-07-12 — Phase 5: maintenance asset flip on approve; audit Lost on close; README §9 step 5 Complete wording; §9 E2E rehearsed.

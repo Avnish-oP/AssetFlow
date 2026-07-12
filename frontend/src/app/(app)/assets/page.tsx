@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
-import { apiFetch, type Asset } from "@/lib/api";
+import { apiFetch, apiUpload, type Asset } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { can } from "@/lib/roles";
 
@@ -24,6 +24,8 @@ export default function AssetsPage() {
   const [location, setLocation] = useState("");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const { showToast } = useToast();
 
   const load = useCallback(() => {
@@ -63,18 +65,33 @@ export default function AssetsPage() {
       acquisition_cost: costValue ? Number(costValue) : null,
       condition: String(form.get("condition") || "good"),
       location: form.get("location") || null,
-      photo_url: form.get("photo_url") || null,
+      photo_url: photoUrl || form.get("photo_url") || null,
       is_bookable: form.get("is_bookable") === "on",
     };
     setIsSubmitting(true);
     try {
       const asset = await apiFetch<Asset>("/assets", { method: "POST", body: JSON.stringify(payload) });
       setAssets((current) => [asset, ...current]);
+      setPhotoUrl("");
       showToast(`Asset ${asset.tag} registered`, "success");
     } catch {
       showToast("Failed to register asset", "error");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onPhotoSelected(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await apiUpload("/uploads", file, "assets");
+      setPhotoUrl(uploaded.url);
+      showToast("Photo uploaded", "success");
+    } catch {
+      showToast("Photo upload failed — is MinIO running?", "error");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -133,8 +150,28 @@ export default function AssetsPage() {
             <FormField label="Location">
               <input className={inputClass} name="location" />
             </FormField>
-            <FormField label="Photo URL">
-              <input className={inputClass} name="photo_url" placeholder="https://…" />
+            <FormField label="Photo / document">
+              <input
+                className={inputClass}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(event) => void onPhotoSelected(event.target.files?.[0] ?? null)}
+              />
+              {uploading ? <p className="mt-1 text-xs text-secondary">Uploading…</p> : null}
+              {photoUrl ? (
+                <p className="mt-1 truncate text-xs text-green" title={photoUrl}>
+                  Uploaded: {photoUrl}
+                </p>
+              ) : null}
+            </FormField>
+            <FormField label="Or photo URL">
+              <input
+                className={inputClass}
+                name="photo_url"
+                placeholder="https://…"
+                value={photoUrl}
+                onChange={(event) => setPhotoUrl(event.target.value)}
+              />
             </FormField>
             <label className="flex items-center gap-2 pt-6 text-sm text-secondary">
               <input name="is_bookable" type="checkbox" /> Shared / bookable

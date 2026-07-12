@@ -8,6 +8,8 @@ export type Capability =
   | "assets_write"
   | "allocations_manage"
   | "transfer_request"
+  | "transfer_approve"
+  | "allocation_return"
   | "bookings"
   | "maintenance_raise"
   | "maintenance_advance"
@@ -22,6 +24,8 @@ const MATRIX: Record<Capability, AppRole[]> = {
   assets_write: ["admin", "asset_manager"],
   allocations_manage: ["admin", "asset_manager", "dept_head"],
   transfer_request: ["admin", "asset_manager", "dept_head", "employee"],
+  transfer_approve: ["admin", "asset_manager", "dept_head"],
+  allocation_return: ["admin", "asset_manager", "dept_head", "employee"],
   bookings: ["admin", "asset_manager", "dept_head", "employee"],
   maintenance_raise: ["admin", "asset_manager", "dept_head", "employee"],
   maintenance_advance: ["admin", "asset_manager"],

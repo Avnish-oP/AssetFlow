@@ -1,9 +1,10 @@
 from datetime import UTC, datetime
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.allocation import Allocation
 from models.asset import Asset
 from models.audit import AuditCycle, AuditCycleAuditor, AuditItem
 from models.user import User
@@ -134,6 +135,16 @@ async def populate_items(db: AsyncSession, cycle: AuditCycle, commit: bool = Tru
     stmt = select(Asset)
     if cycle.scope_location:
         stmt = stmt.where(Asset.location == cycle.scope_location)
+    if cycle.scope_department_id:
+        dept_user_ids = select(User.id).where(User.department_id == cycle.scope_department_id)
+        active_asset_ids = select(Allocation.asset_id).where(
+            Allocation.status.in_(["active", "overdue"]),
+            or_(
+                Allocation.holder_department_id == cycle.scope_department_id,
+                Allocation.holder_user_id.in_(dept_user_ids),
+            ),
+        )
+        stmt = stmt.where(Asset.id.in_(active_asset_ids))
     assets = (await db.scalars(stmt)).all()
 
     existing_ids = set(

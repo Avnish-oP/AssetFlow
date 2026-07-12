@@ -58,6 +58,10 @@ export default function BookingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showToast } = useToast();
   const [error, setError] = useState("");
+  const [rescheduleId, setRescheduleId] = useState<number | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState(todayIso());
+  const [rescheduleStart, setRescheduleStart] = useState("09:00");
+  const [rescheduleEnd, setRescheduleEnd] = useState("10:00");
 
   useEffect(() => {
     apiFetch<Asset[]>("/assets?is_bookable=true")
@@ -144,6 +148,40 @@ export default function BookingsPage() {
       showToast("Booking cancelled", "success");
     } catch {
       showToast("Failed to cancel booking", "error");
+    }
+  }
+
+  function openReschedule(booking: Booking) {
+    setRescheduleId(booking.id);
+    setRescheduleDate(booking.start.slice(0, 10));
+    setRescheduleStart(new Date(booking.start).toTimeString().slice(0, 5));
+    setRescheduleEnd(new Date(booking.end).toTimeString().slice(0, 5));
+  }
+
+  async function submitReschedule() {
+    if (!rescheduleId) return;
+    const startAt = new Date(`${rescheduleDate}T${rescheduleStart}:00`);
+    const endAt = new Date(`${rescheduleDate}T${rescheduleEnd}:00`);
+    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) {
+      showToast("Pick a valid reschedule window", "error");
+      return;
+    }
+    try {
+      const updated = await apiFetch<Booking>(`/bookings/${rescheduleId}/reschedule`, {
+        method: "POST",
+        body: JSON.stringify({ start: startAt.toISOString(), end: endAt.toISOString() }),
+      });
+      setBookings((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      if (resourceId) await loadDaySlots(Number(resourceId), date);
+      setRescheduleId(null);
+      showToast("Booking rescheduled", "success");
+    } catch (error) {
+      const apiError = error as ApiError;
+      if (apiError.status === 409) {
+        showToast("Slot unavailable for reschedule", "error");
+      } else {
+        showToast("Failed to reschedule", "error");
+      }
     }
   }
 
@@ -287,7 +325,7 @@ export default function BookingsPage() {
       <DataTable headers={["Resource", "Start", "End", "Status", "Actions"]}>
         {bookings.map((booking) => {
           const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
-          const canCancel = booking.status === "upcoming" || booking.status === "ongoing";
+          const canEdit = booking.status === "upcoming" || booking.status === "ongoing";
           return (
             <tr key={booking.id}>
               <td className="px-4 py-3 font-medium">{resourceName}</td>
@@ -296,11 +334,16 @@ export default function BookingsPage() {
               <td className="px-4 py-3">
                 <StatusPill value={booking.status} />
               </td>
-              <td className="px-4 py-3">
-                {canCancel ? (
-                  <button type="button" className={secondaryButtonClass} onClick={() => void cancelBooking(booking)}>
-                    Cancel
-                  </button>
+              <td className="space-x-2 px-4 py-3">
+                {canEdit ? (
+                  <>
+                    <button type="button" className={secondaryButtonClass} onClick={() => openReschedule(booking)}>
+                      Reschedule
+                    </button>
+                    <button type="button" className={secondaryButtonClass} onClick={() => void cancelBooking(booking)}>
+                      Cancel
+                    </button>
+                  </>
                 ) : (
                   <span className="text-xs text-muted">—</span>
                 )}
@@ -309,6 +352,33 @@ export default function BookingsPage() {
           );
         })}
       </DataTable>
+
+      {rescheduleId ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg border border-line bg-surface p-5">
+            <h3 className="mb-3 text-base font-medium">Reschedule booking #{rescheduleId}</h3>
+            <div className="grid gap-3">
+              <FormField label="Date">
+                <input className={inputClass} type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} />
+              </FormField>
+              <FormField label="Start">
+                <input className={inputClass} type="time" value={rescheduleStart} onChange={(e) => setRescheduleStart(e.target.value)} />
+              </FormField>
+              <FormField label="End">
+                <input className={inputClass} type="time" value={rescheduleEnd} onChange={(e) => setRescheduleEnd(e.target.value)} />
+              </FormField>
+              <div className="flex gap-2">
+                <button type="button" className={buttonClass} onClick={() => void submitReschedule()}>
+                  Save
+                </button>
+                <button type="button" className={secondaryButtonClass} onClick={() => setRescheduleId(null)}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
