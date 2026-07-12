@@ -545,7 +545,7 @@ export default function AssetsPage() {
                   </button>
                 ) : null}
               </td>
-            </tr>
+            </TableRow>
           ))}
         </DataTable>
       ) : null}
