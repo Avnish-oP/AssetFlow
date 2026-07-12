@@ -22,6 +22,9 @@ const POLL_MS = 25_000;
 export default function DashboardPage() {
   const { user } = useAuth();
   const canSeeKpis = can(user?.role, "dashboard_kpis");
+  const canWriteAssets = can(user?.role, "assets_write");
+  const canRaise = can(user?.role, "maintenance_raise");
+  const canBook = can(user?.role, "bookings");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [returns, setReturns] = useState<
@@ -165,10 +168,25 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button className={secondaryButtonClass} type="button" onClick={() => load()}>
           Refresh now
         </button>
+        {canWriteAssets ? (
+          <a className={buttonClass} href="/assets">
+            Register asset
+          </a>
+        ) : null}
+        {canBook ? (
+          <a className={secondaryButtonClass} href="/bookings">
+            Book resource
+          </a>
+        ) : null}
+        {canRaise ? (
+          <a className={secondaryButtonClass} href="/maintenance">
+            Raise maintenance
+          </a>
+        ) : null}
         {canSeeKpis ? (
           <a className={buttonClass} href="/reports">
             Open reports

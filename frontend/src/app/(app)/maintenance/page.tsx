@@ -38,7 +38,17 @@ const COLUMN_DOT: Record<string, string> = {
   resolved: "bg-green",
 };
 
-function KanbanCard({ item, dimmed, draggable }: { item: MaintenanceRequest; dimmed?: boolean; draggable: boolean }) {
+function KanbanCard({
+  item,
+  dimmed,
+  draggable,
+  onReject,
+}: {
+  item: MaintenanceRequest;
+  dimmed?: boolean;
+  draggable: boolean;
+  onReject?: (id: number) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(item.id),
     disabled: !draggable,
@@ -66,6 +76,19 @@ function KanbanCard({ item, dimmed, draggable }: { item: MaintenanceRequest; dim
         <span>{item.technician_name ? `Tech: ${item.technician_name}` : `Raised by #${item.raised_by}`}</span>
         <span>{new Date(item.created_at).toLocaleDateString()}</span>
       </div>
+      {item.status === "pending" && onReject ? (
+        <button
+          type="button"
+          className={`${secondaryButtonClass} mt-2 w-full text-xs`}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onReject(item.id);
+          }}
+        >
+          Reject
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -74,10 +97,12 @@ function KanbanColumn({
   status,
   items,
   draggable,
+  onReject,
 }: {
   status: string;
   items: MaintenanceRequest[];
   draggable: boolean;
+  onReject?: (id: number) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status, disabled: !draggable });
   return (
@@ -96,7 +121,13 @@ function KanbanColumn({
       </div>
       <div className="flex flex-1 flex-col gap-2 p-2">
         {items.map((item) => (
-          <KanbanCard key={item.id} item={item} dimmed={status === "resolved"} draggable={draggable} />
+          <KanbanCard
+            key={item.id}
+            item={item}
+            dimmed={status === "resolved"}
+            draggable={draggable}
+            onReject={status === "pending" ? onReject : undefined}
+          />
         ))}
       </div>
     </div>
@@ -185,6 +216,21 @@ export default function MaintenancePage() {
     await load();
   }
 
+  async function rejectRequest(requestId: number) {
+    if (!canAdvance) return;
+    setError(null);
+    try {
+      await apiFetch(`/maintenance/${requestId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "rejected" }),
+      });
+      await load();
+    } catch (err) {
+      const detail = (err as { detail?: unknown })?.detail;
+      setError(typeof detail === "string" ? detail : "Could not reject request");
+    }
+  }
+
   const empty = columns.every((column) => column.items.length === 0);
 
   return (
@@ -193,8 +239,8 @@ export default function MaintenancePage() {
         <div>
           <h1 className="text-xl font-semibold">Maintenance</h1>
           <p className="text-sm text-secondary">
-            Raising a request flips the asset to maintenance. Drag cards one column at a time through the workflow to
-            resolve.
+            Approve flips the asset to under maintenance. Advance cards one column at a time; resolve restores
+            available or allocated.
           </p>
         </div>
         <button className={buttonClass} type="button" onClick={() => setShowForm(true)} disabled={!canRaise}>
@@ -272,7 +318,7 @@ export default function MaintenancePage() {
       {empty && !showForm ? (
         <EmptyState
           title="No maintenance requests yet"
-          description="Raise a request to put an asset under maintenance."
+          description="Raise a request; approval flips the asset to under maintenance."
           action="Raise request"
           onAction={() => setShowForm(true)}
         />
@@ -280,7 +326,13 @@ export default function MaintenancePage() {
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
           <div className="grid gap-3 xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
             {columns.map((column) => (
-              <KanbanColumn key={column.status} status={column.status} items={column.items} draggable={canAdvance} />
+              <KanbanColumn
+                key={column.status}
+                status={column.status}
+                items={column.items}
+                draggable={canAdvance}
+                onReject={canAdvance ? rejectRequest : undefined}
+              />
             ))}
           </div>
         </DndContext>
