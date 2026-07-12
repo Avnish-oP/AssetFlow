@@ -30,11 +30,31 @@ type BookingConflict = {
 const HOURS = [9, 10, 11, 12, 13, 14, 15, 16];
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateIso(new Date());
 }
 
 function toTimeValue(hours: number, minutes = 0) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function localDateIso(value: Date) {
+  const y = value.getFullYear();
+  const m = String(value.getMonth() + 1).padStart(2, "0");
+  const d = String(value.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function localTimeValue(value: Date) {
+  return `${String(value.getHours()).padStart(2, "0")}:${String(value.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Build a local Date from date (YYYY-MM-DD) + time (HH:MM or HH:MM:SS). */
+function parseLocalDateTime(date: string, time: string): Date | null {
+  if (!date || !time) return null;
+  const normalized = time.length === 5 ? `${time}:00` : time.slice(0, 8);
+  const parsed = new Date(`${date}T${normalized}`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
 }
 
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date) {
@@ -90,9 +110,9 @@ export default function BookingsPage() {
 
   const requestedRange = useMemo(() => {
     if (!date || !start || !end) return null;
-    const startAt = new Date(`${date}T${start}:00`);
-    const endAt = new Date(`${date}T${end}:00`);
-    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) return null;
+    const startAt = parseLocalDateTime(date, start);
+    const endAt = parseLocalDateTime(date, end);
+    if (!startAt || !endAt || endAt <= startAt) return null;
     return { startAt, endAt };
   }, [date, start, end]);
 
@@ -152,18 +172,20 @@ export default function BookingsPage() {
   }
 
   function openReschedule(booking: Booking) {
+    const startAt = new Date(booking.start);
+    const endAt = new Date(booking.end);
     setRescheduleId(booking.id);
-    setRescheduleDate(booking.start.slice(0, 10));
-    setRescheduleStart(new Date(booking.start).toTimeString().slice(0, 5));
-    setRescheduleEnd(new Date(booking.end).toTimeString().slice(0, 5));
+    setRescheduleDate(localDateIso(startAt));
+    setRescheduleStart(localTimeValue(startAt));
+    setRescheduleEnd(localTimeValue(endAt));
   }
 
   async function submitReschedule() {
     if (!rescheduleId) return;
-    const startAt = new Date(`${rescheduleDate}T${rescheduleStart}:00`);
-    const endAt = new Date(`${rescheduleDate}T${rescheduleEnd}:00`);
-    if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) {
-      showToast("Pick a valid reschedule window", "error");
+    const startAt = parseLocalDateTime(rescheduleDate, rescheduleStart);
+    const endAt = parseLocalDateTime(rescheduleDate, rescheduleEnd);
+    if (!startAt || !endAt || endAt <= startAt) {
+      showToast("Pick a valid reschedule window (end must be after start)", "error");
       return;
     }
     try {
@@ -180,7 +202,8 @@ export default function BookingsPage() {
       if (apiError.status === 409) {
         showToast("Slot unavailable for reschedule", "error");
       } else {
-        showToast("Failed to reschedule", "error");
+        const detail = typeof apiError.detail === "string" ? apiError.detail : "Failed to reschedule";
+        showToast(detail, "error");
       }
     }
   }
