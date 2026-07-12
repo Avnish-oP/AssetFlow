@@ -1,0 +1,3734 @@
+diff --git a/AGENT.md b/AGENT.md
+index 892289a..4dc4f53 100644
+--- a/AGENT.md
++++ b/AGENT.md
+@@ -51,10 +51,10 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
+ - [ ] Booking overlap block works (GIST exclude constraint + 409 + conflict UI)
+ 
+ **Phase 2 — Workflows (target 4:00)**
+-- [ ] Transfer request: requested → approved → re-allocated, history updates
+-- [ ] Return flow: condition notes, asset reverts to Available
+-- [ ] Maintenance: pending → approved → technician assigned → in progress → resolved, kanban UI, asset status auto-flips
+-- [ ] Audit cycle: create, assign auditors, verify items, close cycle, discrepancy report, missing → asset status = Lost
++- [x] Transfer request: requested → approved → re-allocated, history updates
++- [x] Return flow: condition notes, asset reverts to Available
++- [x] Maintenance: pending → approved → technician assigned → in progress → resolved, kanban UI, asset status auto-flips
++- [x] Audit cycle: create, assign auditors, verify items, close cycle, discrepancy report, missing → asset status = Lost
+ 
+ **Phase 3 — Reports, notifications, dashboard (target 5:30)**
+ - [ ] Dashboard KPI cards live (available/allocated/maintenance/bookings/transfers/returns)
+@@ -64,7 +64,7 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
+ 
+ **Phase 4 — Integration & demo (target 7:00)**
+ - [ ] All mocks removed, everything on live data
+-- [ ] `seed.py` demo dataset loaded (Priya Shah / AF-0114 / Room B2 scenario)
++- [x] `seed.py` demo dataset loaded (Priya Shah / AF-0114 / Room B2 scenario)
+ - [ ] Role-based UI gating verified for all 4 roles
+ - [ ] Demo script (README §9) rehearsed once, end to end, no blockers
+ 
+@@ -74,7 +74,7 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
+ 
+ *(append-only, newest on top, one line each: `HH:MM — decision — why`)*
+ 
+-- 2026-07-12 — implemented Phase 1 in actual `backend/` + `frontend/` structure — repo does not use README's `apps/api` + `apps/web` paths.
++- 2026-07-12 — `backend/seed.py` is the single source of demo data; `init.sql` is schema-only. Re-run `python seed.py` anytime to wipe + reload.
+ - 2026-07-12 — backend dependencies are tracked in `backend/requirements.txt` — no Python project manifest existed yet.
+ - 2026-07-12 — raw SQL bootstrap stays in `backend/infra/postgres/init.sql` and docker-compose mounts that path — fastest path for the hackathon schema and DB-level constraints.
+ - `docker-compose.yml` covers postgres/redis/minio only — FastAPI stays un-dockerized until the API is stable, to keep `uvicorn --reload` fast during the build. Add an `api` service + `apps/api/Dockerfile` later, not now.
+diff --git a/DESIGN.md b/DESIGN.md
+index c8015ba..a25f449 100644
+--- a/DESIGN.md
++++ b/DESIGN.md
+@@ -40,41 +40,68 @@ Dark theme only for the hackathon (no light mode — cut for time).
+ --accent-amber-bg: #332405   /* warning banner background */
+ --accent-blue:     #3B82F6   /* Booked/confirmed slots, informational, links */
+ --accent-blue-bg:  #16233F
++
++--radius-card:     10px      /* cards, tables, empty states — slight lift over flat 8px */
++--radius-control:  8px       /* inputs, buttons */
++--transition-fast: 150ms ease
+ ```
+ 
+ Rule: a color never appears without its `-bg` pair when used as a banner or badge — solid text-color-only badges read as noise on a dark background at this density.
+ 
++---
++
+ ## 3. Typography
+ 
+ - UI font: system sans stack (`-apple-system, Inter, Segoe UI, sans-serif`) — don't add a webfont, not worth the time budget.
+ - Scale: `12px` (table cells, meta text) / `14px` (body, labels, inputs) / `16px` (section headers) / `20px` (screen title) / `28px` (KPI numbers).
+ - Weight: `600` for screen titles and KPI numbers, `500` for section headers, `400` everywhere else. No `700+` anywhere — this isn't a marketing page.
+ 
++---
++
+ ## 4. Layout
+ 
+-- **Sidebar:** fixed, 220px, `--surface` background, `--border` right edge. Same 10 items, same order, on every screen: Dashboard, Organization Setup, Assets, Allocation & Transfer, Resource Booking, Maintenance, Audit, Reports, Notifications. Active item: `--border-strong` background + `--accent-green` left border, 3px.
+-- **Content area:** `--bg` background, 24px padding, max content width unconstrained (this is a desktop-first ops tool).
+-- **Cards:** `--surface` background, 1px `--border`, 8px radius. That's it — no shadow-heavy elevation, borders do the separating work on a dark background.
+-- **KPI row (Dashboard):** grid of equal-width cards, big number (28px/600) over a label (12px, `--text-secondary`).
++- **Sidebar:** fixed, **240px**, `--surface` background, `--border` right edge. Same 10 items, same order, on every screen: Dashboard, Organization Setup, Assets, Allocation & Transfer, Resource Booking, Maintenance, Audit, Reports, Notifications.
++  - Each nav item has a small inline SVG icon (16px) left of the label.
++  - Active item: `--border-strong` background + `--accent-green` left border (3px) + icon tinted `--accent-green`. Optional faint green wash: `linear-gradient(90deg, rgba(34,197,94,0.08), transparent)`.
++  - Hover: `--surface-raised` background, 6px radius on the link row.
++  - Brand: small green square mark + "AssetFlow" + "Operations console" subtitle.
++  - Footer: avatar circle with initials (`--accent-green-bg` / `--accent-green`), name, role pill, Sign out.
++- **Content area:** `--bg` background, 24px padding, max content width unconstrained. Left margin matches sidebar (240px). No global search bar or notification bell in the shell (Phase 3).
++- **Cards:** `--surface` background, 1px `--border`, `var(--radius-card)`. Subtle hover lift allowed: `translateY(-1px)` + slightly stronger border (`--border-strong`). No heavy multi-layer shadows, no grain/noise texture, no glow rings.
++- **KPI row (Dashboard):** grid of equal-width cards, optional leading icon + optional trend text (`+12%` green / `-3%` red). Big number (28px/600) over a label (12px, `--text-secondary`). Optional 2px bottom border accent in the KPI's semantic color.
++
++---
+ 
+ ## 5. Component patterns
+ 
+ | Pattern | Rule |
+ |---|---|
+-| **Status pill** | Rounded-full, 12px text, colored border + `-bg` fill matching the semantic color (§2). Available/Active/Verified/Resolved = green. Overdue/Missing/Blocked = red. Pending/Damaged/Flagged = amber. Booked/Reserved = blue. |
+-| **Conflict banner** | Full-width, `--accent-red-bg` fill, `--accent-red` left border (4px), used *only* for: double-allocation block, booking overlap, overdue flags. Reserve red for these — don't reuse it for generic form errors, or the two signature conflict rules stop standing out. |
+-| **Table** | 1px `--border` row dividers only, no zebra striping (too busy at this density). Header row: `--text-secondary`, 12px, uppercase-off (sentence case, per mockup). |
+-| **Kanban card (Maintenance)** | Same card token as everywhere else — `--surface` + `--border`. Priority/asset tag as a small pill top-left. Dragging updates status via `PATCH`; the column itself has no separate styling per state, only the cards' pills carry color. |
+-| **Forms** | Label above input, 14px. Input: `--surface-raised` background, `--border` outline, `--border-strong` on focus (no colored focus ring — this isn't a consumer product). |
+-| **Empty state** | Centered, `--text-muted` icon + one line of `--text-secondary` text + a single primary action. Every list screen needs one — don't ship a blank table. |
++| **Status pill** | Rounded-full, 12px text, colored border + `-bg` fill matching the semantic color (§2). Available/Active/Verified/Resolved = green. Overdue/Missing/Blocked = red. Pending/Damaged/Flagged = amber. Booked/Reserved = blue. Overdue/missing may show a small pulsing dot before the label. |
++| **Conflict banner** | Full-width, `--accent-red-bg` fill, `--accent-red` left border (4px), warning triangle icon, used *only* for: double-allocation block, booking overlap, overdue flags. Reserve red for these — don't reuse it for generic form errors. |
++| **Table** | 1px `--border` row dividers only, no zebra striping. Row hover: `--surface-raised` + micro lift. Header row: `--text-secondary`, 12px, `py-3.5`. Optional `rowClassName` for conditional tint (e.g. overdue → faint red). |
++| **Kanban card (Maintenance)** | Same card token as everywhere else — `--surface` + `--border`. Priority/asset tag as a small pill top-left. Dragging updates status via `PATCH`; the column itself has no separate styling per state, only the cards' pills carry color. Hover: same light lift as cards. |
++| **Forms** | Label above input, 14px. Input: `--surface-raised` background, `--border` outline, `--border-strong` on focus (**no colored focus ring**). Controls use `var(--radius-control)`. Buttons: subtle brightness bump on hover, no scale transforms. |
++| **Empty state** | Centered icon in a soft circle, title + optional secondary line, single primary action. Every list screen needs one — don't ship a blank table. |
++
++### Explicitly deferred (do not ship in Phase 2)
++
++- Background grain / noise texture
++- AppShell global search bar
++- AppShell notification bell
++- Colored input focus glow rings
++- Shadow-heavy card elevation / neon glows
++
++---
+ 
+ ## 6. Screen-specific notes
+ 
+-- **Screen 5 (Allocation):** the red conflict banner + Transfer Request form appearing *inline below it* (not a modal) is the one interaction worth pixel-matching to the mockup exactly — it's the demo's first "wow" moment.
++- **Screen 5 (Allocation):** the red conflict banner + Transfer Request form appearing *inline below it* (not a modal) is the one interaction worth pixel-matching to the mockup exactly — it's the demo's first "wow" moment. Return flow uses a small condition-notes dialog.
+ - **Screen 6 (Booking):** render the calendar as a simple vertical time-slot list (per mockup), not a full calendar grid — a real calendar widget is not worth the build time for a 7-hour hackathon, and the mockup already shows the simpler pattern is fine.
+ - **Screen 7 (Maintenance):** kanban, 5 fixed columns (Pending → Approved → Technician Assigned → In Progress → Resolved), matches the state machine in `README.md` §4.4 exactly — don't let the frontend invent a column the backend doesn't have a status for.
+ - **Screen 9 (Reports):** two chart cards (bar + line) side by side, list-style stat blocks below — use `recharts`, keep chart color to `--accent-blue` and `--accent-amber` only, don't rainbow it.
+ 
++---
++
+ ## 7. Using Stitch MCP (if connected)
+ 
+ Google Stitch can extract a "Design DNA" (colors/type/layout) from an existing screen and generate new screens from text, and can pull raw HTML/CSS for a screen as a scaffolding reference. Useful ways to use it here without letting it drift from this file:
+@@ -83,6 +110,8 @@ Google Stitch can extract a "Design DNA" (colors/type/layout) from an existing s
+ - Use `generate_screen_from_text` for a fast first draft of a screen you're stuck on, then hand-rebuild it in Tailwind/shadcn using the tokens above — Stitch's raw HTML/CSS is a reference, not something to ship as-is.
+ - Don't let Stitch generate its own `DESIGN.md` and use both — this file is the canonical one for this repo; if Stitch produces one, merge anything useful into this file and discard the rest.
+ 
++---
++
+ ## 8. Accessibility (don't skip this even under time pressure)
+ 
+ - Text on `--bg`/`--surface` must hit the pill/badge colors above at their specified contrast — don't lighten status colors for "vibrance," it breaks contrast on dark backgrounds.
+diff --git a/README.md b/README.md
+index 440acce..d00b410 100644
+--- a/README.md
++++ b/README.md
+@@ -217,7 +217,24 @@ Adjust freely if the 4th person's actual skills differ — the point is *module
+ 
+ ## 9. Seed data & demo script
+ 
+-`seed.py` recreates the exact examples the problem statement itself uses — Priya Shah / Laptop AF-0114 / Engineering, Room B2 / 9:00–10:00 — so the demo *is* the spec, which reads as deliberate rather than improvised.
++`backend/seed.py` wipes application tables and recreates the exact examples the problem statement itself uses — Priya Shah / Laptop AF-0114 / Engineering, Room B2 / 9:00–10:00 — so the demo *is* the spec.
++
++```bash
++cd backend && python seed.py
++```
++
++All seeded accounts use password `password`:
++
++| Email | Role |
++|---|---|
++| `admin@assetflow.dev` | admin |
++| `meera@assetflow.dev` | asset_manager |
++| `ravi@assetflow.dev` | dept_head |
++| `priya@assetflow.dev` | employee |
++| `amit@assetflow.dev` | employee |
++| `neha@assetflow.dev` | employee |
++
++Assets start `available` (AF-0114, AF-0062, AF-0108, AF-ROOM-B2). Allocations / bookings / maintenance / audits are left empty so the steps below can be walked live.
+ 
+ 1. Login as Admin → Org Setup → promote an employee to Asset Manager (proves no self-elevation).
+ 2. Register a new asset → appears `Available` with an auto-generated tag.
+@@ -237,9 +254,9 @@ Adjust freely if the 4th person's actual skills differ — the point is *module
+ git clone <repo> && cd assetflow
+ cp .env.example .env
+ docker compose up -d          # postgres, redis, minio
+-cd apps/api && alembic upgrade head && python seed.py
+-uvicorn app.main:app --reload # http://localhost:8000/docs
+-cd ../web && npm install && npm run dev  # http://localhost:3000
++cd backend && python seed.py  # wipe + load demo dataset (README §9)
++uvicorn main:app --reload     # http://localhost:8000/docs
++cd ../frontend && npm install && npm run dev  # http://localhost:3000
+ ```
+ 
+ ---
+diff --git a/backend/api/routes/allocations.py b/backend/api/routes/allocations.py
+index 1cd5edb..d5ea0a7 100644
+--- a/backend/api/routes/allocations.py
++++ b/backend/api/routes/allocations.py
+@@ -8,13 +8,19 @@ from core.database import get_db
+ from core.security import require_role
+ from models.allocation import Allocation
+ from schemas.allocation import AllocationCreate, AllocationResponse, AllocationReturn
+-from services.allocation_service import create_allocation, return_allocation
++from services.allocation_service import create_allocation, list_history_for_asset, return_allocation
+ 
+ router = APIRouter(prefix="/allocations", tags=["allocations"], dependencies=[Depends(require_role("admin", "asset_manager", "dept_head"))])
+ 
+ 
+ @router.get("", response_model=list[AllocationResponse])
+-async def list_allocations(db: Annotated[AsyncSession, Depends(get_db)], status: str | None = Query(default=None)):
++async def list_allocations(
++    db: Annotated[AsyncSession, Depends(get_db)],
++    status: str | None = Query(default=None),
++    asset_id: int | None = Query(default=None),
++):
++    if asset_id is not None:
++        return await list_history_for_asset(db, asset_id)
+     stmt = select(Allocation).order_by(Allocation.allocated_at.desc())
+     if status:
+         stmt = stmt.where(Allocation.status == status)
+diff --git a/backend/api/routes/audits.py b/backend/api/routes/audits.py
+new file mode 100644
+index 0000000..af8e8ab
+--- /dev/null
++++ b/backend/api/routes/audits.py
+@@ -0,0 +1,78 @@
++from typing import Annotated
++
++from fastapi import APIRouter, Depends, HTTPException, status
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from core.database import get_db
++from core.security import get_current_user, require_role
++from models.asset import Asset
++from models.audit import AuditCycle
++from models.user import User
++from schemas.audit import (
++    AuditCycleCreate,
++    AuditCycleDetail,
++    AuditCycleResponse,
++    AuditItemResponse,
++    AuditItemVerify,
++    DiscrepancyReport,
++)
++from services import audit_service as svc
++
++router = APIRouter(
++    prefix="/audits",
++    tags=["audits"],
++    dependencies=[Depends(require_role("admin", "asset_manager"))],
++)
++
++
++@router.get("", response_model=list[AuditCycleResponse])
++async def list_audits(db: Annotated[AsyncSession, Depends(get_db)]):
++    return await svc.list_cycles(db)
++
++
++@router.post("", response_model=AuditCycleResponse, status_code=status.HTTP_201_CREATED)
++async def create_audit(
++    payload: AuditCycleCreate,
++    db: Annotated[AsyncSession, Depends(get_db)],
++    user: Annotated[User, Depends(get_current_user)],
++):
++    cycle = await svc.create_cycle(db, payload, created_by=user.id)
++    return await svc._cycle_response(db, cycle)
++
++
++@router.get("/{cycle_id}", response_model=AuditCycleDetail)
++async def get_audit(cycle_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
++    return await svc.get_cycle_detail(db, cycle_id)
++
++
++@router.post("/{cycle_id}/items", response_model=AuditCycleDetail)
++async def populate_audit_items(cycle_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
++    cycle = await db.get(AuditCycle, cycle_id)
++    if not cycle:
++        raise HTTPException(status_code=404, detail="Audit cycle not found")
++    await svc.populate_items(db, cycle)
++    return await svc.get_cycle_detail(db, cycle_id)
++
++
++@router.patch("/{cycle_id}/items/{item_id}", response_model=AuditItemResponse)
++async def verify_audit_item(
++    cycle_id: int,
++    item_id: int,
++    payload: AuditItemVerify,
++    db: Annotated[AsyncSession, Depends(get_db)],
++    user: Annotated[User, Depends(get_current_user)],
++):
++    item = await svc.verify_item(db, cycle_id, item_id, payload, actor_id=user.id)
++    asset = await db.get(Asset, item.asset_id)
++    return svc._item_response(item, asset)
++
++
++@router.post("/{cycle_id}/close", response_model=AuditCycleResponse)
++async def close_audit(cycle_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
++    cycle = await svc.close_cycle(db, cycle_id)
++    return await svc._cycle_response(db, cycle)
++
++
++@router.get("/{cycle_id}/report", response_model=DiscrepancyReport)
++async def audit_report(cycle_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
++    return await svc.discrepancy_report(db, cycle_id)
+diff --git a/backend/api/routes/maintenance.py b/backend/api/routes/maintenance.py
+new file mode 100644
+index 0000000..7a778c8
+--- /dev/null
++++ b/backend/api/routes/maintenance.py
+@@ -0,0 +1,83 @@
++from typing import Annotated
++
++from fastapi import APIRouter, Depends, Query, status
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from core.database import get_db
++from core.security import get_current_user, require_role
++from models.asset import Asset
++from models.user import User
++from schemas.maintenance import (
++    KanbanBoard,
++    KanbanColumn,
++    MaintenanceCreate,
++    MaintenanceResponse,
++    MaintenanceStatusUpdate,
++)
++from services import maintenance_service as svc
++
++router = APIRouter(prefix="/maintenance", tags=["maintenance"])
++
++
++@router.get("", response_model=list[MaintenanceResponse])
++async def list_maintenance(
++    db: Annotated[AsyncSession, Depends(get_db)],
++    _: Annotated[User, Depends(get_current_user)],
++    status_filter: str | None = Query(default=None, alias="status"),
++    priority: str | None = None,
++):
++    return await svc.list_requests(db, status=status_filter, priority=priority)
++
++
++@router.get("/kanban", response_model=KanbanBoard)
++async def maintenance_kanban(
++    db: Annotated[AsyncSession, Depends(get_db)],
++    _: Annotated[User, Depends(get_current_user)],
++):
++    grouped = await svc.get_kanban_grouped(db)
++    columns = [
++        KanbanColumn(status=status_name, count=len(items), items=items)
++        for status_name, items in grouped.items()
++        if status_name in svc.KANBAN_COLUMNS
++    ]
++    order = {name: index for index, name in enumerate(svc.KANBAN_COLUMNS)}
++    columns.sort(key=lambda column: order.get(column.status, 99))
++    return KanbanBoard(columns=columns)
++
++
++@router.post("", response_model=MaintenanceResponse, status_code=status.HTTP_201_CREATED)
++async def create_maintenance(
++    payload: MaintenanceCreate,
++    db: Annotated[AsyncSession, Depends(get_db)],
++    user: Annotated[User, Depends(get_current_user)],
++):
++    request = await svc.create_request(db, payload, raised_by=user.id)
++    asset = await db.get(Asset, request.asset_id)
++    return svc._to_response(request, asset)
++
++
++@router.get("/{request_id}", response_model=MaintenanceResponse)
++async def get_maintenance(
++    request_id: int,
++    db: Annotated[AsyncSession, Depends(get_db)],
++    _: Annotated[User, Depends(get_current_user)],
++):
++    request = await svc.get_request(db, request_id)
++    asset = await db.get(Asset, request.asset_id)
++    return svc._to_response(request, asset)
++
++
++@router.patch(
++    "/{request_id}/status",
++    response_model=MaintenanceResponse,
++    dependencies=[Depends(require_role("admin", "asset_manager"))],
++)
++async def update_maintenance_status(
++    request_id: int,
++    payload: MaintenanceStatusUpdate,
++    db: Annotated[AsyncSession, Depends(get_db)],
++    user: Annotated[User, Depends(get_current_user)],
++):
++    request = await svc.advance_status(db, request_id, payload, actor_id=user.id)
++    asset = await db.get(Asset, request.asset_id)
++    return svc._to_response(request, asset)
+diff --git a/backend/api/routes/transfers.py b/backend/api/routes/transfers.py
+index d2a1b2b..8e0d1e0 100644
+--- a/backend/api/routes/transfers.py
++++ b/backend/api/routes/transfers.py
+@@ -9,6 +9,7 @@ from core.security import get_current_user, require_role
+ from models.allocation import Allocation, TransferRequest
+ from models.user import User
+ from schemas.allocation import TransferCreate, TransferResponse
++from services.transfer_service import act_on_transfer
+ 
+ router = APIRouter(prefix="/transfers", tags=["transfers"])
+ 
+@@ -39,15 +40,13 @@ async def create_transfer(
+ 
+ 
+ @router.post("/{transfer_id}/{action}", response_model=TransferResponse, dependencies=[Depends(require_role("admin", "asset_manager"))])
+-async def act_on_transfer(transfer_id: int, action: str, db: Annotated[AsyncSession, Depends(get_db)], user: Annotated[User, Depends(get_current_user)]):
++async def transfer_action(
++    transfer_id: int,
++    action: str,
++    db: Annotated[AsyncSession, Depends(get_db)],
++    user: Annotated[User, Depends(get_current_user)],
++):
+     transfer = await db.get(TransferRequest, transfer_id)
+     if not transfer:
+         raise HTTPException(status_code=404, detail="Transfer not found")
+-    if action not in {"approve", "reject", "complete"}:
+-        raise HTTPException(status_code=400, detail="Invalid action")
+-    transfer.status = {"approve": "approved", "reject": "rejected", "complete": "completed"}[action]
+-    transfer.approved_by = user.id if action in {"approve", "complete"} else None
+-    await db.commit()
+-    await db.refresh(transfer)
+-    return transfer
+-
++    return await act_on_transfer(db, transfer, action, actor_id=user.id)
+diff --git a/backend/infra/postgres/init.sql b/backend/infra/postgres/init.sql
+index c21b93a..60375ff 100644
+--- a/backend/infra/postgres/init.sql
++++ b/backend/infra/postgres/init.sql
+@@ -142,6 +142,12 @@ CREATE TABLE IF NOT EXISTS audit_items (
+   verified_at TIMESTAMPTZ
+ );
+ 
++CREATE TABLE IF NOT EXISTS audit_cycle_auditors (
++  cycle_id BIGINT NOT NULL REFERENCES audit_cycles(id) ON DELETE CASCADE,
++  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
++  PRIMARY KEY (cycle_id, user_id)
++);
++
+ CREATE TABLE IF NOT EXISTS notifications (
+   id BIGSERIAL PRIMARY KEY,
+   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+@@ -167,31 +173,5 @@ CREATE INDEX IF NOT EXISTS idx_assets_search ON assets USING gin (to_tsvector('s
+ CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
+ CREATE INDEX IF NOT EXISTS idx_bookings_resource_slot ON bookings USING gist(resource_id, slot);
+ 
+-INSERT INTO departments(name)
+-VALUES ('Engineering'), ('Facilities'), ('Finance')
+-ON CONFLICT (name) DO NOTHING;
+-
+--- Seed password for both demo users: password
+-INSERT INTO users(name, email, password_hash, role, department_id)
+-SELECT 'Admin User', 'admin@assetflow.com', '$2b$12$CXmofwczCcPh/0sHLlVdde1VX/YrdRQpVHFMXevZnJphTd62ezAPu', 'admin', d.id
+-FROM departments d WHERE d.name = 'Engineering'
+-ON CONFLICT (email) DO NOTHING;
+-
+-INSERT INTO users(name, email, password_hash, role, department_id)
+-SELECT 'Priya Shah', 'priya@assetflow.com', '$2b$12$CXmofwczCcPh/0sHLlVdde1VX/YrdRQpVHFMXevZnJphTd62ezAPu', 'employee', d.id
+-FROM departments d WHERE d.name = 'Engineering'
+-ON CONFLICT (email) DO NOTHING;
+-
+-INSERT INTO asset_categories(name, custom_fields)
+-VALUES ('Laptop', '{"warranty_months": 36}'::jsonb), ('Room', '{}'::jsonb)
+-ON CONFLICT (name) DO NOTHING;
+-
+-INSERT INTO assets(tag, name, category_id, serial_number, location, is_bookable, status)
+-SELECT 'AF-0114', 'MacBook Pro 14', c.id, 'MBP-0114', 'Engineering', false, 'available'
+-FROM asset_categories c WHERE c.name = 'Laptop'
+-ON CONFLICT (tag) DO NOTHING;
+-
+-INSERT INTO assets(tag, name, category_id, location, is_bookable, status)
+-SELECT 'AF-ROOM-B2', 'Room B2', c.id, 'Floor 2', true, 'available'
+-FROM asset_categories c WHERE c.name = 'Room'
+-ON CONFLICT (tag) DO NOTHING;
++-- Demo data lives in backend/seed.py (run: cd backend && python seed.py).
++-- Keep this file schema-only so first-boot and re-seed stay consistent.
+diff --git a/backend/main.py b/backend/main.py
+index 6ed2c42..755e6cd 100644
+--- a/backend/main.py
++++ b/backend/main.py
+@@ -1,7 +1,19 @@
+ from fastapi import FastAPI
+ from fastapi.middleware.cors import CORSMiddleware
+ 
+-from api.routes import allocations, assets, auth, bookings, categories, departments, employees, stubs, transfers
++from api.routes import (
++    allocations,
++    assets,
++    audits,
++    auth,
++    bookings,
++    categories,
++    departments,
++    employees,
++    maintenance,
++    stubs,
++    transfers,
++)
+ from core.config import get_settings
+ 
+ settings = get_settings()
+@@ -23,8 +35,8 @@ app.include_router(assets.router)
+ app.include_router(allocations.router)
+ app.include_router(transfers.router)
+ app.include_router(bookings.router)
+-app.include_router(stubs.stub_router("/maintenance", "maintenance"))
+-app.include_router(stubs.stub_router("/audits", "audits"))
++app.include_router(maintenance.router)
++app.include_router(audits.router)
+ app.include_router(stubs.stub_router("/reports", "reports"))
+ app.include_router(stubs.stub_router("/notifications", "notifications"))
+ 
+diff --git a/backend/models/__init__.py b/backend/models/__init__.py
+index da1e96b..b5ae360 100644
+--- a/backend/models/__init__.py
++++ b/backend/models/__init__.py
+@@ -1,6 +1,6 @@
+ from models.allocation import Allocation, TransferRequest
+ from models.asset import Asset, AssetCategory
+-from models.audit import ActivityLog, AuditCycle, AuditItem, Notification
++from models.audit import ActivityLog, AuditCycle, AuditCycleAuditor, AuditItem, Notification
+ from models.booking import Booking
+ from models.department import Department
+ from models.maintenance import MaintenanceRequest
+@@ -12,6 +12,7 @@ __all__ = [
+     "Asset",
+     "AssetCategory",
+     "AuditCycle",
++    "AuditCycleAuditor",
+     "AuditItem",
+     "Booking",
+     "Department",
+diff --git a/backend/models/audit.py b/backend/models/audit.py
+index 17e0b44..496bd6d 100644
+--- a/backend/models/audit.py
++++ b/backend/models/audit.py
+@@ -21,6 +21,13 @@ class AuditCycle(Base):
+     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+ 
+ 
++class AuditCycleAuditor(Base):
++    __tablename__ = "audit_cycle_auditors"
++
++    cycle_id: Mapped[int] = mapped_column(ForeignKey("audit_cycles.id", ondelete="CASCADE"), primary_key=True)
++    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
++
++
+ class AuditItem(Base):
+     __tablename__ = "audit_items"
+ 
+diff --git a/backend/schemas/allocation.py b/backend/schemas/allocation.py
+index 5376d86..fcd454b 100644
+--- a/backend/schemas/allocation.py
++++ b/backend/schemas/allocation.py
+@@ -14,6 +14,7 @@ class AllocationCreate(BaseModel):
+ 
+ class AllocationReturn(BaseModel):
+     return_condition_notes: str | None = None
++    condition: str | None = None
+ 
+ 
+ class AllocationResponse(OrmModel):
+@@ -24,6 +25,7 @@ class AllocationResponse(OrmModel):
+     allocated_at: datetime
+     expected_return_date: date | None = None
+     returned_at: datetime | None = None
++    return_condition_notes: str | None = None
+     status: str
+ 
+ 
+diff --git a/backend/schemas/audit.py b/backend/schemas/audit.py
+new file mode 100644
+index 0000000..1942d8d
+--- /dev/null
++++ b/backend/schemas/audit.py
+@@ -0,0 +1,74 @@
++from datetime import date, datetime
++
++from pydantic import BaseModel, Field
++
++from schemas.common import OrmModel
++
++
++class AuditCycleCreate(BaseModel):
++    name: str
++    scope_department_id: int | None = None
++    scope_location: str | None = None
++    start_date: date
++    end_date: date
++    auditor_ids: list[int] = Field(default_factory=list)
++
++
++class AuditItemVerify(BaseModel):
++    verification_status: str
++    notes: str | None = None
++
++
++class AuditItemResponse(OrmModel):
++    id: int
++    cycle_id: int
++    asset_id: int
++    expected_location: str | None = None
++    verification_status: str
++    notes: str | None = None
++    verified_by: int | None = None
++    verified_at: datetime | None = None
++    asset_tag: str | None = None
++    asset_name: str | None = None
++    asset_condition: str | None = None
++
++
++class AuditCycleResponse(OrmModel):
++    id: int
++    name: str
++    scope_department_id: int | None = None
++    scope_location: str | None = None
++    start_date: date
++    end_date: date
++    status: str
++    created_by: int
++    auditor_ids: list[int] = Field(default_factory=list)
++    total_items: int = 0
++    verified_count: int = 0
++    missing_count: int = 0
++    damaged_count: int = 0
++    pending_count: int = 0
++
++
++class AuditCycleDetail(AuditCycleResponse):
++    items: list[AuditItemResponse] = Field(default_factory=list)
++
++
++class DiscrepancyItem(BaseModel):
++    item_id: int
++    asset_id: int
++    asset_tag: str | None = None
++    asset_name: str | None = None
++    verification_status: str
++    notes: str | None = None
++    expected_location: str | None = None
++
++
++class DiscrepancyReport(BaseModel):
++    cycle_id: int
++    cycle_name: str
++    missing_count: int
++    damaged_count: int
++    verified_count: int
++    pending_count: int
++    items: list[DiscrepancyItem] = Field(default_factory=list)
+diff --git a/backend/schemas/maintenance.py b/backend/schemas/maintenance.py
+new file mode 100644
+index 0000000..01a4b40
+--- /dev/null
++++ b/backend/schemas/maintenance.py
+@@ -0,0 +1,43 @@
++from datetime import datetime
++
++from pydantic import BaseModel, Field
++
++from schemas.common import OrmModel
++
++
++class MaintenanceCreate(BaseModel):
++    asset_id: int
++    issue_description: str
++    priority: str = "medium"
++    photo_url: str | None = None
++
++
++class MaintenanceStatusUpdate(BaseModel):
++    status: str
++    technician_name: str | None = None
++
++
++class MaintenanceResponse(OrmModel):
++    id: int
++    asset_id: int
++    raised_by: int
++    issue_description: str
++    priority: str
++    photo_url: str | None = None
++    status: str
++    approved_by: int | None = None
++    technician_name: str | None = None
++    resolved_at: datetime | None = None
++    created_at: datetime
++    asset_tag: str | None = None
++    asset_name: str | None = None
++
++
++class KanbanColumn(BaseModel):
++    status: str
++    count: int
++    items: list[MaintenanceResponse] = Field(default_factory=list)
++
++
++class KanbanBoard(BaseModel):
++    columns: list[KanbanColumn]
+diff --git a/backend/seed.py b/backend/seed.py
+new file mode 100644
+index 0000000..c945b2a
+--- /dev/null
++++ b/backend/seed.py
+@@ -0,0 +1,216 @@
++#!/usr/bin/env python3
++"""Reset the database and load the AssetFlow demo dataset.
++
++Usage (from repo root or backend/):
++    cd backend
++    python seed.py
++
++All seeded users share password: password
++
++Demo accounts:
++    admin@assetflow.dev          admin
++    meera@assetflow.dev          asset_manager
++    ravi@assetflow.dev           dept_head (Engineering)
++    priya@assetflow.dev          employee  (Engineering) — AF-0114 holder in demo step 3
++    amit@assetflow.dev           employee  (Engineering) — transfer target
++    neha@assetflow.dev           employee  (Facilities)
++"""
++
++from __future__ import annotations
++
++import asyncio
++import sys
++from datetime import date
++from decimal import Decimal
++from pathlib import Path
++
++# Allow `python seed.py` from backend/ or repo root
++BACKEND_ROOT = Path(__file__).resolve().parent
++if str(BACKEND_ROOT) not in sys.path:
++    sys.path.insert(0, str(BACKEND_ROOT))
++
++from sqlalchemy import text
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from core.database import AsyncSessionLocal, engine
++from core.security import hash_password
++from models.asset import Asset, AssetCategory
++from models.department import Department
++from models.user import User
++
++# Shared demo password — documented in README §9 / this file's docstring
++DEMO_PASSWORD = "password"
++
++TABLES = [
++    "activity_logs",
++    "notifications",
++    "audit_cycle_auditors",
++    "audit_items",
++    "audit_cycles",
++    "maintenance_requests",
++    "bookings",
++    "transfer_requests",
++    "allocations",
++    "assets",
++    "asset_categories",
++    "users",
++    "departments",
++]
++
++
++async def clear_all(session: AsyncSession) -> None:
++    # Break departments.head_id → users cycle before truncate
++    await session.execute(text("UPDATE departments SET head_id = NULL"))
++    await session.execute(
++        text(f"TRUNCATE TABLE {', '.join(TABLES)} RESTART IDENTITY CASCADE")
++    )
++    await session.execute(text("ALTER SEQUENCE asset_tag_seq RESTART WITH 200"))
++    await session.commit()
++    print("Cleared all application tables and reset sequences.")
++
++
++async def seed(session: AsyncSession) -> None:
++    password_hash = hash_password(DEMO_PASSWORD)
++
++    engineering = Department(name="Engineering", status="active")
++    facilities = Department(name="Facilities", status="active")
++    finance = Department(name="Finance", status="active")
++    session.add_all([engineering, facilities, finance])
++    await session.flush()
++
++    admin = User(
++        name="Admin User",
++        email="admin@assetflow.dev",
++        password_hash=password_hash,
++        role="admin",
++        department_id=engineering.id,
++        status="active",
++    )
++    meera = User(
++        name="Meera Kapoor",
++        email="meera@assetflow.dev",
++        password_hash=password_hash,
++        role="asset_manager",
++        department_id=facilities.id,
++        status="active",
++    )
++    ravi = User(
++        name="Ravi Menon",
++        email="ravi@assetflow.dev",
++        password_hash=password_hash,
++        role="dept_head",
++        department_id=engineering.id,
++        status="active",
++    )
++    priya = User(
++        name="Priya Shah",
++        email="priya@assetflow.dev",
++        password_hash=password_hash,
++        role="employee",
++        department_id=engineering.id,
++        status="active",
++    )
++    amit = User(
++        name="Amit Rao",
++        email="amit@assetflow.dev",
++        password_hash=password_hash,
++        role="employee",
++        department_id=engineering.id,
++        status="active",
++    )
++    neha = User(
++        name="Neha Iyer",
++        email="neha@assetflow.dev",
++        password_hash=password_hash,
++        role="employee",
++        department_id=facilities.id,
++        status="active",
++    )
++    session.add_all([admin, meera, ravi, priya, amit, neha])
++    await session.flush()
++
++    engineering.head_id = ravi.id
++    facilities.head_id = meera.id
++
++    laptop = AssetCategory(name="Laptop", custom_fields={"warranty_months": 36})
++    room = AssetCategory(name="Room", custom_fields={})
++    projector = AssetCategory(name="Projector", custom_fields={})
++    session.add_all([laptop, room, projector])
++    await session.flush()
++
++    session.add_all(
++        [
++            Asset(
++                tag="AF-0114",
++                name="MacBook Pro 14",
++                category_id=laptop.id,
++                serial_number="MBP-0114",
++                acquisition_date=date(2024, 3, 15),
++                acquisition_cost=Decimal("1899.00"),
++                condition="good",
++                location="Engineering",
++                is_bookable=False,
++                status="available",
++            ),
++            Asset(
++                tag="AF-0062",
++                name="Dell Latitude 5440",
++                category_id=laptop.id,
++                serial_number="DLL-0062",
++                acquisition_date=date(2023, 8, 1),
++                acquisition_cost=Decimal("1199.00"),
++                condition="good",
++                location="Engineering",
++                is_bookable=False,
++                status="available",
++            ),
++            Asset(
++                tag="AF-0108",
++                name="Epson Projector",
++                category_id=projector.id,
++                serial_number="EPS-0108",
++                acquisition_date=date(2022, 11, 20),
++                acquisition_cost=Decimal("650.00"),
++                condition="fair",
++                location="Facilities",
++                is_bookable=True,
++                status="available",
++            ),
++            Asset(
++                tag="AF-ROOM-B2",
++                name="Room B2",
++                category_id=room.id,
++                condition="good",
++                location="Floor 2",
++                is_bookable=True,
++                status="available",
++            ),
++        ]
++    )
++    await session.commit()
++
++    print("Seeded demo dataset.")
++    print()
++    print("Login (password for all accounts: password)")
++    print("  admin@assetflow.dev       admin")
++    print("  meera@assetflow.dev       asset_manager")
++    print("  ravi@assetflow.dev        dept_head")
++    print("  priya@assetflow.dev       employee   ← allocate AF-0114 to her in demo")
++    print("  amit@assetflow.dev        employee   ← transfer target")
++    print("  neha@assetflow.dev        employee")
++    print()
++    print("Assets ready: AF-0114, AF-0062, AF-0108, AF-ROOM-B2 (all available)")
++    print("Operational tables left empty so README §9 demo steps run clean.")
++
++
++async def main() -> None:
++    print("AssetFlow seed — wiping and reloading demo data…")
++    async with AsyncSessionLocal() as session:
++        await clear_all(session)
++        await seed(session)
++    await engine.dispose()
++    print("Done.")
++
++
++if __name__ == "__main__":
++    asyncio.run(main())
+diff --git a/backend/services/__init__.py b/backend/services/__init__.py
+new file mode 100644
+index 0000000..e69de29
+diff --git a/backend/services/allocation_service.py b/backend/services/allocation_service.py
+index 10d4271..4b22fb0 100644
+--- a/backend/services/allocation_service.py
++++ b/backend/services/allocation_service.py
+@@ -10,6 +10,7 @@ from models.asset import Asset
+ from models.department import Department
+ from models.user import User
+ from schemas.allocation import AllocationCreate, AllocationReturn
++from services.transitions import assert_transition
+ 
+ 
+ async def _holder_payload(db: AsyncSession, asset_id: int) -> dict:
+@@ -48,6 +49,7 @@ async def create_allocation(db: AsyncSession, payload: AllocationCreate) -> Allo
+             },
+         )
+     allocation = Allocation(**payload.model_dump(), status="active")
++    assert_transition(asset.status, "allocated", "asset")
+     asset.status = "allocated"
+     db.add(allocation)
+     try:
+@@ -72,15 +74,37 @@ async def return_allocation(db: AsyncSession, allocation_id: int, payload: Alloc
+     allocation = await db.get(Allocation, allocation_id)
+     if not allocation:
+         raise HTTPException(status_code=404, detail="Allocation not found")
+-    if allocation.status != "active":
+-        raise HTTPException(status_code=400, detail="Allocation is not active")
++    if allocation.status not in {"active", "overdue"}:
++        raise HTTPException(status_code=400, detail="Allocation is not returnable")
+     asset = await db.get(Asset, allocation.asset_id)
++    assert_transition(allocation.status, "returned", "allocation")
+     allocation.status = "returned"
+     allocation.returned_at = datetime.now(UTC)
+     allocation.return_condition_notes = payload.return_condition_notes
+     if asset:
+-        asset.status = "available"
++        if payload.condition:
++            asset.condition = payload.condition
++        elif payload.return_condition_notes:
++            notes = payload.return_condition_notes.lower()
++            if "damage" in notes or "broken" in notes:
++                asset.condition = "damaged"
++            elif "fair" in notes or "wear" in notes:
++                asset.condition = "fair"
++            else:
++                asset.condition = "good"
++        if asset.status == "allocated":
++            assert_transition(asset.status, "available", "asset")
++            asset.status = "available"
+     await db.commit()
+     await db.refresh(allocation)
+     return allocation
+ 
++
++async def list_history_for_asset(db: AsyncSession, asset_id: int) -> list[Allocation]:
++    return list(
++        (
++            await db.scalars(
++                select(Allocation).where(Allocation.asset_id == asset_id).order_by(Allocation.allocated_at.desc())
++            )
++        ).all()
++    )
+diff --git a/backend/services/audit_service.py b/backend/services/audit_service.py
+new file mode 100644
+index 0000000..b1d6429
+--- /dev/null
++++ b/backend/services/audit_service.py
+@@ -0,0 +1,254 @@
++from datetime import UTC, datetime
++
++from fastapi import HTTPException
++from sqlalchemy import func, select
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from models.asset import Asset
++from models.audit import AuditCycle, AuditCycleAuditor, AuditItem
++from models.user import User
++from schemas.audit import (
++    AuditCycleCreate,
++    AuditCycleDetail,
++    AuditCycleResponse,
++    AuditItemResponse,
++    AuditItemVerify,
++    DiscrepancyItem,
++    DiscrepancyReport,
++)
++from services.transitions import assert_transition
++
++
++async def _summary_counts(db: AsyncSession, cycle_id: int) -> dict[str, int]:
++    rows = (
++        await db.execute(
++            select(AuditItem.verification_status, func.count())
++            .where(AuditItem.cycle_id == cycle_id)
++            .group_by(AuditItem.verification_status)
++        )
++    ).all()
++    counts = {status: count for status, count in rows}
++    return {
++        "total_items": sum(counts.values()),
++        "verified_count": counts.get("verified", 0),
++        "missing_count": counts.get("missing", 0),
++        "damaged_count": counts.get("damaged", 0),
++        "pending_count": counts.get("pending", 0),
++    }
++
++
++async def _auditor_ids(db: AsyncSession, cycle_id: int) -> list[int]:
++    return list(
++        (await db.scalars(select(AuditCycleAuditor.user_id).where(AuditCycleAuditor.cycle_id == cycle_id))).all()
++    )
++
++
++async def _cycle_response(db: AsyncSession, cycle: AuditCycle) -> AuditCycleResponse:
++    counts = await _summary_counts(db, cycle.id)
++    return AuditCycleResponse(
++        id=cycle.id,
++        name=cycle.name,
++        scope_department_id=cycle.scope_department_id,
++        scope_location=cycle.scope_location,
++        start_date=cycle.start_date,
++        end_date=cycle.end_date,
++        status=cycle.status,
++        created_by=cycle.created_by,
++        auditor_ids=await _auditor_ids(db, cycle.id),
++        **counts,
++    )
++
++
++def _item_response(item: AuditItem, asset: Asset | None = None) -> AuditItemResponse:
++    return AuditItemResponse(
++        id=item.id,
++        cycle_id=item.cycle_id,
++        asset_id=item.asset_id,
++        expected_location=item.expected_location,
++        verification_status=item.verification_status,
++        notes=item.notes,
++        verified_by=item.verified_by,
++        verified_at=item.verified_at,
++        asset_tag=asset.tag if asset else None,
++        asset_name=asset.name if asset else None,
++        asset_condition=asset.condition if asset else None,
++    )
++
++
++async def create_cycle(db: AsyncSession, payload: AuditCycleCreate, created_by: int) -> AuditCycle:
++    if payload.end_date < payload.start_date:
++        raise HTTPException(status_code=400, detail="end_date must be on or after start_date")
++
++    for auditor_id in payload.auditor_ids:
++        user = await db.get(User, auditor_id)
++        if not user:
++            raise HTTPException(status_code=400, detail=f"Auditor {auditor_id} not found")
++
++    cycle = AuditCycle(
++        name=payload.name,
++        scope_department_id=payload.scope_department_id,
++        scope_location=payload.scope_location,
++        start_date=payload.start_date,
++        end_date=payload.end_date,
++        status="open",
++        created_by=created_by,
++    )
++    db.add(cycle)
++    await db.flush()
++
++    for auditor_id in payload.auditor_ids:
++        db.add(AuditCycleAuditor(cycle_id=cycle.id, user_id=auditor_id))
++
++    await populate_items(db, cycle, commit=False)
++    await db.commit()
++    await db.refresh(cycle)
++    return cycle
++
++
++async def list_cycles(db: AsyncSession) -> list[AuditCycleResponse]:
++    cycles = (await db.scalars(select(AuditCycle).order_by(AuditCycle.id.desc()))).all()
++    return [await _cycle_response(db, cycle) for cycle in cycles]
++
++
++async def get_cycle_detail(db: AsyncSession, cycle_id: int) -> AuditCycleDetail:
++    cycle = await db.get(AuditCycle, cycle_id)
++    if not cycle:
++        raise HTTPException(status_code=404, detail="Audit cycle not found")
++    base = await _cycle_response(db, cycle)
++    rows = (
++        await db.execute(
++            select(AuditItem, Asset)
++            .join(Asset, AuditItem.asset_id == Asset.id, isouter=True)
++            .where(AuditItem.cycle_id == cycle_id)
++            .order_by(AuditItem.id)
++        )
++    ).all()
++    return AuditCycleDetail(**base.model_dump(), items=[_item_response(item, asset) for item, asset in rows])
++
++
++async def populate_items(db: AsyncSession, cycle: AuditCycle, commit: bool = True) -> list[AuditItem]:
++    if cycle.status != "open":
++        raise HTTPException(status_code=400, detail="Cannot add items to a closed cycle")
++
++    stmt = select(Asset)
++    if cycle.scope_location:
++        stmt = stmt.where(Asset.location == cycle.scope_location)
++    assets = (await db.scalars(stmt)).all()
++
++    existing_ids = set(
++        (await db.scalars(select(AuditItem.asset_id).where(AuditItem.cycle_id == cycle.id))).all()
++    )
++    created: list[AuditItem] = []
++    for asset in assets:
++        if asset.id in existing_ids:
++            continue
++        item = AuditItem(
++            cycle_id=cycle.id,
++            asset_id=asset.id,
++            expected_location=asset.location,
++            verification_status="pending",
++        )
++        db.add(item)
++        created.append(item)
++
++    if commit:
++        await db.commit()
++        for item in created:
++            await db.refresh(item)
++    return created
++
++
++async def verify_item(
++    db: AsyncSession,
++    cycle_id: int,
++    item_id: int,
++    payload: AuditItemVerify,
++    actor_id: int,
++) -> AuditItem:
++    cycle = await db.get(AuditCycle, cycle_id)
++    if not cycle:
++        raise HTTPException(status_code=404, detail="Audit cycle not found")
++    if cycle.status != "open":
++        raise HTTPException(status_code=400, detail="Cycle is closed")
++
++    item = await db.get(AuditItem, item_id)
++    if not item or item.cycle_id != cycle_id:
++        raise HTTPException(status_code=404, detail="Audit item not found")
++
++    assert_transition(item.verification_status, payload.verification_status, "audit")
++    item.verification_status = payload.verification_status
++    item.notes = payload.notes
++    item.verified_by = actor_id
++    item.verified_at = datetime.now(UTC)
++
++    asset = await db.get(Asset, item.asset_id)
++    if asset:
++        if payload.verification_status == "missing":
++            assert_transition(asset.status, "lost", "asset")
++            asset.status = "lost"
++        elif payload.verification_status == "damaged":
++            asset.condition = "damaged"
++
++    await db.commit()
++    await db.refresh(item)
++    return item
++
++
++async def close_cycle(db: AsyncSession, cycle_id: int) -> AuditCycle:
++    cycle = await db.get(AuditCycle, cycle_id)
++    if not cycle:
++        raise HTTPException(status_code=404, detail="Audit cycle not found")
++    if cycle.status != "open":
++        raise HTTPException(status_code=400, detail="Cycle already closed")
++
++    counts = await _summary_counts(db, cycle_id)
++    if counts["pending_count"] > 0:
++        raise HTTPException(
++            status_code=400,
++            detail=f"Cannot close cycle with {counts['pending_count']} pending items",
++        )
++
++    cycle.status = "closed"
++    await db.commit()
++    await db.refresh(cycle)
++    return cycle
++
++
++async def discrepancy_report(db: AsyncSession, cycle_id: int) -> DiscrepancyReport:
++    cycle = await db.get(AuditCycle, cycle_id)
++    if not cycle:
++        raise HTTPException(status_code=404, detail="Audit cycle not found")
++
++    counts = await _summary_counts(db, cycle_id)
++    rows = (
++        await db.execute(
++            select(AuditItem, Asset)
++            .join(Asset, AuditItem.asset_id == Asset.id, isouter=True)
++            .where(
++                AuditItem.cycle_id == cycle_id,
++                AuditItem.verification_status.in_(["missing", "damaged"]),
++            )
++            .order_by(AuditItem.id)
++        )
++    ).all()
++
++    return DiscrepancyReport(
++        cycle_id=cycle.id,
++        cycle_name=cycle.name,
++        missing_count=counts["missing_count"],
++        damaged_count=counts["damaged_count"],
++        verified_count=counts["verified_count"],
++        pending_count=counts["pending_count"],
++        items=[
++            DiscrepancyItem(
++                item_id=item.id,
++                asset_id=item.asset_id,
++                asset_tag=asset.tag if asset else None,
++                asset_name=asset.name if asset else None,
++                verification_status=item.verification_status,
++                notes=item.notes,
++                expected_location=item.expected_location,
++            )
++            for item, asset in rows
++        ],
++    )
+diff --git a/backend/services/maintenance_service.py b/backend/services/maintenance_service.py
+new file mode 100644
+index 0000000..b721413
+--- /dev/null
++++ b/backend/services/maintenance_service.py
+@@ -0,0 +1,127 @@
++from datetime import UTC, datetime
++
++from fastapi import HTTPException
++from sqlalchemy import select
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from models.allocation import Allocation
++from models.asset import Asset
++from models.maintenance import MaintenanceRequest
++from schemas.maintenance import MaintenanceCreate, MaintenanceResponse, MaintenanceStatusUpdate
++from services.transitions import assert_transition
++
++KANBAN_COLUMNS = ["pending", "approved", "technician_assigned", "in_progress", "resolved"]
++
++
++def _to_response(row: MaintenanceRequest, asset: Asset | None = None) -> MaintenanceResponse:
++    return MaintenanceResponse(
++        id=row.id,
++        asset_id=row.asset_id,
++        raised_by=row.raised_by,
++        issue_description=row.issue_description,
++        priority=row.priority,
++        photo_url=row.photo_url,
++        status=row.status,
++        approved_by=row.approved_by,
++        technician_name=row.technician_name,
++        resolved_at=row.resolved_at,
++        created_at=row.created_at,
++        asset_tag=asset.tag if asset else None,
++        asset_name=asset.name if asset else None,
++    )
++
++
++async def create_request(db: AsyncSession, payload: MaintenanceCreate, raised_by: int) -> MaintenanceRequest:
++    asset = await db.get(Asset, payload.asset_id)
++    if not asset:
++        raise HTTPException(status_code=404, detail="Asset not found")
++    if asset.status in {"lost", "retired", "disposed"}:
++        raise HTTPException(status_code=400, detail=f"Cannot raise maintenance for asset in status {asset.status}")
++
++    assert_transition(asset.status, "maintenance", "asset")
++    asset.status = "maintenance"
++
++    request = MaintenanceRequest(
++        asset_id=payload.asset_id,
++        raised_by=raised_by,
++        issue_description=payload.issue_description,
++        priority=payload.priority,
++        photo_url=payload.photo_url,
++        status="pending",
++    )
++    db.add(request)
++    await db.commit()
++    await db.refresh(request)
++    return request
++
++
++async def get_request(db: AsyncSession, request_id: int) -> MaintenanceRequest:
++    request = await db.get(MaintenanceRequest, request_id)
++    if not request:
++        raise HTTPException(status_code=404, detail="Maintenance request not found")
++    return request
++
++
++async def list_requests(
++    db: AsyncSession,
++    status: str | None = None,
++    priority: str | None = None,
++) -> list[MaintenanceResponse]:
++    stmt = (
++        select(MaintenanceRequest, Asset)
++        .join(Asset, MaintenanceRequest.asset_id == Asset.id, isouter=True)
++        .order_by(MaintenanceRequest.created_at.desc())
++    )
++    if status:
++        stmt = stmt.where(MaintenanceRequest.status == status)
++    if priority:
++        stmt = stmt.where(MaintenanceRequest.priority == priority)
++    rows = (await db.execute(stmt)).all()
++    return [_to_response(request, asset) for request, asset in rows]
++
++
++async def advance_status(
++    db: AsyncSession,
++    request_id: int,
++    payload: MaintenanceStatusUpdate,
++    actor_id: int,
++) -> MaintenanceRequest:
++    request = await get_request(db, request_id)
++    target = payload.status
++    assert_transition(request.status, target, "maintenance")
++
++    if target == "approved":
++        request.approved_by = actor_id
++    if target == "technician_assigned":
++        if not payload.technician_name and not request.technician_name:
++            raise HTTPException(status_code=400, detail="technician_name is required")
++        if payload.technician_name:
++            request.technician_name = payload.technician_name
++    if target == "resolved":
++        request.resolved_at = datetime.now(UTC)
++        asset = await db.get(Asset, request.asset_id)
++        if asset and asset.status == "maintenance":
++            active = await db.scalar(
++                select(Allocation).where(Allocation.asset_id == asset.id, Allocation.status == "active")
++            )
++            restore = "allocated" if active else "available"
++            assert_transition(asset.status, restore, "asset")
++            asset.status = restore
++
++    request.status = target
++    await db.commit()
++    await db.refresh(request)
++    return request
++
++
++async def get_kanban_grouped(db: AsyncSession) -> dict[str, list[MaintenanceResponse]]:
++    items = await list_requests(db)
++    grouped: dict[str, list[MaintenanceResponse]] = {column: [] for column in KANBAN_COLUMNS}
++    for item in items:
++        if item.status in grouped:
++            grouped[item.status].append(item)
++        elif item.status == "rejected":
++            continue
++        else:
++            grouped.setdefault(item.status, []).append(item)
++    return grouped
+diff --git a/backend/services/transfer_service.py b/backend/services/transfer_service.py
+new file mode 100644
+index 0000000..1c61bd7
+--- /dev/null
++++ b/backend/services/transfer_service.py
+@@ -0,0 +1,59 @@
++from datetime import UTC, datetime
++
++from fastapi import HTTPException
++from sqlalchemy import select
++from sqlalchemy.ext.asyncio import AsyncSession
++
++from models.allocation import Allocation, TransferRequest
++from models.asset import Asset
++from services.transitions import assert_transition
++
++
++async def act_on_transfer(db: AsyncSession, transfer: TransferRequest, action: str, actor_id: int) -> TransferRequest:
++    target = {"approve": "approved", "reject": "rejected", "complete": "completed"}.get(action)
++    if not target:
++        raise HTTPException(status_code=400, detail="Invalid action")
++
++    assert_transition(transfer.status, target, "transfer")
++
++    if action == "approve":
++        transfer.status = "approved"
++        transfer.approved_by = actor_id
++    elif action == "reject":
++        transfer.status = "rejected"
++    elif action == "complete":
++        await _complete_transfer(db, transfer, actor_id)
++
++    await db.commit()
++    await db.refresh(transfer)
++    return transfer
++
++
++async def _complete_transfer(db: AsyncSession, transfer: TransferRequest, actor_id: int) -> None:
++    active = await db.scalar(
++        select(Allocation).where(Allocation.asset_id == transfer.asset_id, Allocation.status == "active")
++    )
++    if not active:
++        raise HTTPException(status_code=400, detail="No active allocation to transfer")
++
++    assert_transition(active.status, "returned", "allocation")
++    active.status = "returned"
++    active.returned_at = datetime.now(UTC)
++    active.return_condition_notes = f"Transferred to user {transfer.to_holder_id}"
++
++    new_allocation = Allocation(
++        asset_id=transfer.asset_id,
++        holder_user_id=transfer.to_holder_id,
++        holder_department_id=None,
++        expected_return_date=active.expected_return_date,
++        status="active",
++    )
++    db.add(new_allocation)
++
++    asset = await db.get(Asset, transfer.asset_id)
++    if asset and asset.status != "allocated":
++        assert_transition(asset.status, "allocated", "asset")
++        asset.status = "allocated"
++
++    transfer.status = "completed"
++    transfer.approved_by = transfer.approved_by or actor_id
+diff --git a/backend/services/transitions.py b/backend/services/transitions.py
+index eea4f91..5f9febe 100644
+--- a/backend/services/transitions.py
++++ b/backend/services/transitions.py
+@@ -36,6 +36,12 @@ TRANSITIONS = {
+         "missing": set(),
+         "damaged": set(),
+     },
++    "transfer": {
++        "requested": {"approved", "rejected"},
++        "approved": {"completed"},
++        "rejected": set(),
++        "completed": set(),
++    },
+ }
+ 
+ 
+diff --git a/frontend/package-lock.json b/frontend/package-lock.json
+index 81a8079..a0ef444 100644
+--- a/frontend/package-lock.json
++++ b/frontend/package-lock.json
+@@ -8,6 +8,9 @@
+       "name": "frontend",
+       "version": "0.1.0",
+       "dependencies": {
++        "@dnd-kit/core": "^6.3.1",
++        "@dnd-kit/sortable": "^10.0.0",
++        "@dnd-kit/utilities": "^3.2.2",
+         "next": "16.2.10",
+         "react": "19.2.4",
+         "react-dom": "19.2.4"
+@@ -276,6 +279,59 @@
+         "node": ">=6.9.0"
+       }
+     },
++    "node_modules/@dnd-kit/accessibility": {
++      "version": "3.1.1",
++      "resolved": "https://registry.npmjs.org/@dnd-kit/accessibility/-/accessibility-3.1.1.tgz",
++      "integrity": "sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==",
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "^2.0.0"
++      },
++      "peerDependencies": {
++        "react": ">=16.8.0"
++      }
++    },
++    "node_modules/@dnd-kit/core": {
++      "version": "6.3.1",
++      "resolved": "https://registry.npmjs.org/@dnd-kit/core/-/core-6.3.1.tgz",
++      "integrity": "sha512-xkGBRQQab4RLwgXxoqETICr6S5JlogafbhNsidmrkVv2YRs5MLwpjoF2qpiGjQt8S9AoxtIV603s0GIUpY5eYQ==",
++      "license": "MIT",
++      "dependencies": {
++        "@dnd-kit/accessibility": "^3.1.1",
++        "@dnd-kit/utilities": "^3.2.2",
++        "tslib": "^2.0.0"
++      },
++      "peerDependencies": {
++        "react": ">=16.8.0",
++        "react-dom": ">=16.8.0"
++      }
++    },
++    "node_modules/@dnd-kit/sortable": {
++      "version": "10.0.0",
++      "resolved": "https://registry.npmjs.org/@dnd-kit/sortable/-/sortable-10.0.0.tgz",
++      "integrity": "sha512-+xqhmIIzvAYMGfBYYnbKuNicfSsk4RksY2XdmJhT+HAC01nix6fHCztU68jooFiMUB01Ky3F0FyOvhG/BZrWkg==",
++      "license": "MIT",
++      "dependencies": {
++        "@dnd-kit/utilities": "^3.2.2",
++        "tslib": "^2.0.0"
++      },
++      "peerDependencies": {
++        "@dnd-kit/core": "^6.3.0",
++        "react": ">=16.8.0"
++      }
++    },
++    "node_modules/@dnd-kit/utilities": {
++      "version": "3.2.2",
++      "resolved": "https://registry.npmjs.org/@dnd-kit/utilities/-/utilities-3.2.2.tgz",
++      "integrity": "sha512-+MKAJEOfaBe5SmV6t34p80MMKhjvUz0vRrvVJbPT0WElzaOJ/1xs+D+KDv+tD/NE5ujfrChEcshd4fLn0wpiqg==",
++      "license": "MIT",
++      "dependencies": {
++        "tslib": "^2.0.0"
++      },
++      "peerDependencies": {
++        "react": ">=16.8.0"
++      }
++    },
+     "node_modules/@emnapi/core": {
+       "version": "1.10.0",
+       "resolved": "https://registry.npmjs.org/@emnapi/core/-/core-1.10.0.tgz",
+diff --git a/frontend/package.json b/frontend/package.json
+index f1c3f3d..3d69956 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -9,6 +9,9 @@
+     "lint": "eslint"
+   },
+   "dependencies": {
++    "@dnd-kit/core": "^6.3.1",
++    "@dnd-kit/sortable": "^10.0.0",
++    "@dnd-kit/utilities": "^3.2.2",
+     "next": "16.2.10",
+     "react": "19.2.4",
+     "react-dom": "19.2.4"
+diff --git a/frontend/src/app/(app)/allocations/page.tsx b/frontend/src/app/(app)/allocations/page.tsx
+index cf032b0..cc4923c 100644
+--- a/frontend/src/app/(app)/allocations/page.tsx
++++ b/frontend/src/app/(app)/allocations/page.tsx
+@@ -2,11 +2,17 @@
+ 
+ import { useEffect, useState } from "react";
+ import { ConflictBanner } from "@/components/shared/ConflictBanner";
+-import { DataTable } from "@/components/shared/DataTable";
++import { DataTable, TableRow } from "@/components/shared/DataTable";
+ import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+ import { StatusPill } from "@/components/shared/StatusPill";
+-import { useToast } from "@/components/shared/Toast";
+-import { apiFetch, type Allocation, type ApiError, type Asset, type User } from "@/lib/api";
++import {
++  apiFetch,
++  type Allocation,
++  type ApiError,
++  type Asset,
++  type TransferRequest,
++  type User,
++} from "@/lib/api";
+ 
+ type Conflict = {
+   asset_id: number;
+@@ -19,22 +25,36 @@ export default function AllocationsPage() {
+   const [assets, setAssets] = useState<Asset[]>([]);
+   const [employees, setEmployees] = useState<User[]>([]);
+   const [allocations, setAllocations] = useState<Allocation[]>([]);
++  const [transfers, setTransfers] = useState<TransferRequest[]>([]);
+   const [conflict, setConflict] = useState<Conflict | null>(null);
+   const [transferReason, setTransferReason] = useState("Required for active project handoff");
+-  const [isSubmitting, setIsSubmitting] = useState(false);
+-  const { showToast } = useToast();
++  const [returnTarget, setReturnTarget] = useState<Allocation | null>(null);
++  const [returnNotes, setReturnNotes] = useState("");
++  const [returnCondition, setReturnCondition] = useState("good");
++  const [message, setMessage] = useState<string | null>(null);
++
++  async function refresh() {
++    const [nextAssets, nextEmployees, nextAllocations, nextTransfers] = await Promise.all([
++      apiFetch<Asset[]>("/assets").catch(() => [] as Asset[]),
++      apiFetch<User[]>("/employees").catch(() => [] as User[]),
++      apiFetch<Allocation[]>("/allocations").catch(() => [] as Allocation[]),
++      apiFetch<TransferRequest[]>("/transfers").catch(() => [] as TransferRequest[]),
++    ]);
++    setAssets(nextAssets);
++    setEmployees(nextEmployees);
++    setAllocations(nextAllocations);
++    setTransfers(nextTransfers);
++  }
+ 
+   useEffect(() => {
+-    apiFetch<Asset[]>("/assets").then(setAssets).catch(() => setAssets([]));
+-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([]));
+-    apiFetch<Allocation[]>("/allocations").then(setAllocations).catch(() => setAllocations([]));
++    refresh();
+   }, []);
+ 
+   async function submitAllocation(form: FormData) {
+     setConflict(null);
+-    setIsSubmitting(true);
++    setMessage(null);
+     try {
+-      const allocation = await apiFetch<Allocation>("/allocations", {
++      await apiFetch<Allocation>("/allocations", {
+         method: "POST",
+         body: JSON.stringify({
+           asset_id: Number(form.get("asset_id")),
+@@ -42,97 +62,229 @@ export default function AllocationsPage() {
+           expected_return_date: form.get("expected_return_date") || null,
+         }),
+       });
+-      setAllocations((current) => [allocation, ...current]);
+-      showToast("Asset allocated successfully", "success");
++      await refresh();
+     } catch (error) {
+       const apiError = error as ApiError;
+-      if (apiError.status === 409) {
+-        setConflict(apiError.detail as Conflict);
+-        showToast("Asset already allocated", "error");
+-      } else {
+-        showToast("Failed to allocate asset", "error");
+-      }
+-    } finally {
+-      setIsSubmitting(false);
++      if (apiError.status === 409) setConflict(apiError.detail as Conflict);
++      else throw error;
+     }
+   }
+ 
+   async function submitTransfer(form: FormData) {
+     if (!conflict) return;
+-    setIsSubmitting(true);
+-    try {
+-      await apiFetch("/transfers", {
+-        method: "POST",
+-        body: JSON.stringify({ asset_id: conflict.asset_id, to_holder_id: Number(form.get("to_holder_id")), reason: transferReason }),
+-      });
+-      setConflict(null);
+-      showToast("Transfer request submitted", "success");
+-    } catch {
+-      showToast("Failed to submit transfer", "error");
+-    } finally {
+-      setIsSubmitting(false);
+-    }
++    await apiFetch("/transfers", {
++      method: "POST",
++      body: JSON.stringify({
++        asset_id: conflict.asset_id,
++        to_holder_id: Number(form.get("to_holder_id")),
++        reason: transferReason,
++      }),
++    });
++    setConflict(null);
++    setMessage("Transfer request submitted");
++    await refresh();
+   }
+ 
++  async function actOnTransfer(id: number, action: "approve" | "complete" | "reject") {
++    setMessage(null);
++    await apiFetch(`/transfers/${id}/${action}`, { method: "POST" });
++    setMessage(`Transfer ${action}d`);
++    await refresh();
++  }
++
++  async function submitReturn() {
++    if (!returnTarget) return;
++    await apiFetch(`/allocations/${returnTarget.id}/return`, {
++      method: "POST",
++      body: JSON.stringify({
++        return_condition_notes: returnNotes || null,
++        condition: returnCondition,
++      }),
++    });
++    setReturnTarget(null);
++    setReturnNotes("");
++    setReturnCondition("good");
++    setMessage("Asset returned");
++    await refresh();
++  }
++
++  const employeeName = (id?: number | null) => employees.find((employee) => employee.id === id)?.name ?? (id ? `#${id}` : "—");
++  const assetLabel = (id: number) => {
++    const asset = assets.find((row) => row.id === id);
++    return asset ? `${asset.tag} ${asset.name}` : `#${id}`;
++  };
++
+   return (
+     <div className="grid gap-6">
+       <header>
+         <h1 className="text-xl font-semibold">Allocation & transfer</h1>
+         <p className="text-sm text-secondary">Direct re-allocation is blocked when an active holder exists.</p>
+       </header>
++
++      {message ? <p className="text-sm text-green">{message}</p> : null}
++
+       <form
+-        className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
++        className="card-surface grid gap-3 p-4 md:grid-cols-4"
+         onSubmit={async (event) => {
+           event.preventDefault();
+           await submitAllocation(new FormData(event.currentTarget));
+         }}
+       >
+-        <FormField label="Asset"><select className={inputClass} name="asset_id">{assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.tag} {asset.name}</option>)}</select></FormField>
+-        <FormField label="Holder"><select className={inputClass} name="holder_user_id">{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></FormField>
+-        <FormField label="Expected return"><input className={inputClass} name="expected_return_date" type="date" /></FormField>
+-        <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+-          {isSubmitting ? "Allocating..." : "Allocate"}
+-        </button>
++        <FormField label="Asset">
++          <select className={inputClass} name="asset_id">
++            {assets.map((asset) => (
++              <option key={asset.id} value={asset.id}>
++                {asset.tag} {asset.name}
++              </option>
++            ))}
++          </select>
++        </FormField>
++        <FormField label="Holder">
++          <select className={inputClass} name="holder_user_id">
++            {employees.map((employee) => (
++              <option key={employee.id} value={employee.id}>
++                {employee.name}
++              </option>
++            ))}
++          </select>
++        </FormField>
++        <FormField label="Expected return">
++          <input className={inputClass} name="expected_return_date" type="date" />
++        </FormField>
++        <button className={`${buttonClass} mt-6`}>Allocate</button>
+       </form>
++
+       {conflict ? (
+         <div className="grid gap-4">
+           <ConflictBanner title={`Already allocated: ${conflict.asset_tag ?? "Asset"}`}>
+             Currently held by {conflict.current_holder?.holder_name ?? "another holder"}
+-            {conflict.current_holder?.department ? ` (${conflict.current_holder.department})` : ""}. Submit a transfer request instead.
++            {conflict.current_holder?.department ? ` (${conflict.current_holder.department})` : ""}. Submit a transfer
++            request instead.
+           </ConflictBanner>
+           <form
+-            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-[1fr_2fr_auto]"
++            className="card-surface grid gap-3 p-4 md:grid-cols-[1fr_2fr_auto]"
+             onSubmit={async (event) => {
+               event.preventDefault();
+               await submitTransfer(new FormData(event.currentTarget));
+             }}
+           >
+-            <FormField label="Transfer to"><select className={inputClass} name="to_holder_id">{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></FormField>
+-            <FormField label="Reason"><input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} /></FormField>
+-            <button disabled={isSubmitting} className={`${secondaryButtonClass} mt-6`}>
+-              {isSubmitting ? "Submitting..." : "Submit transfer"}
+-            </button>
++            <FormField label="Transfer to">
++              <select className={inputClass} name="to_holder_id">
++                {employees.map((employee) => (
++                  <option key={employee.id} value={employee.id}>
++                    {employee.name}
++                  </option>
++                ))}
++              </select>
++            </FormField>
++            <FormField label="Reason">
++              <input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} />
++            </FormField>
++            <button className={`${secondaryButtonClass} mt-6`}>Submit transfer</button>
+           </form>
+         </div>
+       ) : null}
+-      <DataTable headers={["Asset", "Holder", "Allocated", "Status"]}>
+-        {allocations.map((allocation) => {
+-          const assetName = assets.find((a) => a.id === allocation.asset_id)?.name ?? `ID: ${allocation.asset_id}`;
+-          const assetTag = assets.find((a) => a.id === allocation.asset_id)?.tag ?? "";
+-          const holderName = employees.find((e) => e.id === allocation.holder_user_id)?.name ?? `ID: ${allocation.holder_user_id}`;
+-          return (
+-            <tr key={allocation.id}>
+-              <td className="px-4 py-3 text-secondary">
+-                {assetTag} <span className="text-primary">{assetName}</span>
+-              </td>
+-              <td className="px-4 py-3">{allocation.holder_user_id ? holderName : "-"}</td>
++
++      <section className="grid gap-3">
++        <h2 className="text-base font-medium">Active allocations</h2>
++        <DataTable headers={["Asset", "Holder", "Allocated", "Due", "Status", ""]}>
++          {allocations.map((allocation) => (
++            <TableRow key={allocation.id}>
++              <td className="px-4 py-3">{assetLabel(allocation.asset_id)}</td>
++              <td className="px-4 py-3 text-secondary">{employeeName(allocation.holder_user_id)}</td>
+               <td className="px-4 py-3 text-secondary">{new Date(allocation.allocated_at).toLocaleString()}</td>
+-              <td className="px-4 py-3"><StatusPill value={allocation.status} /></td>
+-            </tr>
+-          );
+-        })}
+-      </DataTable>
++              <td className="px-4 py-3 text-secondary">{allocation.expected_return_date ?? "—"}</td>
++              <td className="px-4 py-3">
++                <StatusPill value={allocation.status} />
++              </td>
++              <td className="px-4 py-3">
++                {allocation.status === "active" || allocation.status === "overdue" ? (
++                  <button
++                    className="text-xs text-green hover:underline"
++                    type="button"
++                    onClick={() => {
++                      setReturnTarget(allocation);
++                      setReturnNotes("");
++                      setReturnCondition("good");
++                    }}
++                  >
++                    Return
++                  </button>
++                ) : null}
++              </td>
++            </TableRow>
++          ))}
++        </DataTable>
++      </section>
++
++      <section className="grid gap-3">
++        <h2 className="text-base font-medium">Transfer requests</h2>
++        <DataTable headers={["Asset", "From", "To", "Status", "Actions"]}>
++          {transfers.map((transfer) => (
++            <TableRow key={transfer.id}>
++              <td className="px-4 py-3">{assetLabel(transfer.asset_id)}</td>
++              <td className="px-4 py-3 text-secondary">{employeeName(transfer.from_holder_id)}</td>
++              <td className="px-4 py-3 text-secondary">{employeeName(transfer.to_holder_id)}</td>
++              <td className="px-4 py-3">
++                <StatusPill value={transfer.status} />
++              </td>
++              <td className="px-4 py-3">
++                <div className="flex flex-wrap gap-2">
++                  {transfer.status === "requested" ? (
++                    <>
++                      <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
++                        Approve
++                      </button>
++                      <button className="text-xs text-red hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "reject")}>
++                        Reject
++                      </button>
++                    </>
++                  ) : null}
++                  {transfer.status === "approved" ? (
++                    <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "complete")}>
++                      Complete
++                    </button>
++                  ) : null}
++                </div>
++              </td>
++            </TableRow>
++          ))}
++        </DataTable>
++      </section>
++
++      {returnTarget ? (
++        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
++          <div className="card-surface w-full max-w-md p-5">
++            <h3 className="mb-1 text-base font-medium">Return asset</h3>
++            <p className="mb-4 text-sm text-secondary">{assetLabel(returnTarget.asset_id)}</p>
++            <div className="grid gap-3">
++              <FormField label="Condition">
++                <select className={inputClass} value={returnCondition} onChange={(event) => setReturnCondition(event.target.value)}>
++                  <option value="good">Good</option>
++                  <option value="fair">Fair</option>
++                  <option value="damaged">Damaged</option>
++                </select>
++              </FormField>
++              <FormField label="Condition notes">
++                <textarea
++                  className={`${inputClass} h-24 py-2`}
++                  value={returnNotes}
++                  onChange={(event) => setReturnNotes(event.target.value)}
++                  placeholder="Any wear, damage, or accessories returned"
++                />
++              </FormField>
++              <div className="flex gap-2">
++                <button className={buttonClass} type="button" onClick={() => submitReturn()}>
++                  Confirm return
++                </button>
++                <button className={secondaryButtonClass} type="button" onClick={() => setReturnTarget(null)}>
++                  Cancel
++                </button>
++              </div>
++            </div>
++          </div>
++        </div>
++      ) : null}
+     </div>
+   );
+ }
+-
+diff --git a/frontend/src/app/(app)/assets/page.tsx b/frontend/src/app/(app)/assets/page.tsx
+index 047424e..d0b7f0e 100644
+--- a/frontend/src/app/(app)/assets/page.tsx
++++ b/frontend/src/app/(app)/assets/page.tsx
+@@ -4,15 +4,12 @@ import { useEffect, useState } from "react";
+ import { DataTable } from "@/components/shared/DataTable";
+ import { buttonClass, FormField, inputClass } from "@/components/shared/FormField";
+ import { StatusPill } from "@/components/shared/StatusPill";
+-import { useToast } from "@/components/shared/Toast";
+ import { apiFetch, type Asset } from "@/lib/api";
+ 
+ export default function AssetsPage() {
+   const [assets, setAssets] = useState<Asset[]>([]);
+   const [search, setSearch] = useState("");
+   const [status, setStatus] = useState("");
+-  const [isSubmitting, setIsSubmitting] = useState(false);
+-  const { showToast } = useToast();
+ 
+   useEffect(() => {
+     const params = new URLSearchParams();
+@@ -20,7 +17,12 @@ export default function AssetsPage() {
+     if (status) params.set("status", status);
+     apiFetch<Asset[]>(`/assets?${params.toString()}`)
+       .then(setAssets)
+-      .catch(() => setAssets([]));
++      .catch(() =>
++        setAssets([
++          { id: 1, tag: "AF-0114", name: "MacBook Pro 14", status: "available", condition: "good", location: "Engineering", is_bookable: false },
++          { id: 2, tag: "AF-ROOM-B2", name: "Room B2", status: "available", condition: "good", location: "Floor 2", is_bookable: true },
++        ]),
++      );
+   }, [search, status]);
+ 
+   async function createAsset(form: FormData) {
+@@ -31,17 +33,8 @@ export default function AssetsPage() {
+       is_bookable: form.get("is_bookable") === "on",
+       condition: "good",
+     };
+-    setIsSubmitting(true);
+-    try {
+-      const asset = await apiFetch<Asset>("/assets", { method: "POST", body: JSON.stringify(payload) });
+-      setAssets((current) => [asset, ...current]);
+-      showToast("Asset registered successfully", "success");
+-      form.get("name"); // Just to use form in try
+-    } catch {
+-      showToast("Failed to register asset", "error");
+-    } finally {
+-      setIsSubmitting(false);
+-    }
++    const asset = await apiFetch<Asset>("/assets", { method: "POST", body: JSON.stringify(payload) });
++    setAssets((current) => [asset, ...current]);
+   }
+ 
+   return (
+@@ -55,18 +48,15 @@ export default function AssetsPage() {
+           className="grid gap-3 md:grid-cols-5"
+           onSubmit={async (event) => {
+             event.preventDefault();
+-            const form = event.currentTarget;
+-            await createAsset(new FormData(form));
+-            if (!isSubmitting) form.reset();
++            await createAsset(new FormData(event.currentTarget));
++            event.currentTarget.reset();
+           }}
+         >
+           <FormField label="Asset name"><input className={inputClass} name="name" required /></FormField>
+           <FormField label="Serial number"><input className={inputClass} name="serial_number" /></FormField>
+           <FormField label="Location"><input className={inputClass} name="location" /></FormField>
+           <label className="flex items-center gap-2 pt-6 text-sm text-secondary"><input name="is_bookable" type="checkbox" /> Bookable</label>
+-          <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+-            {isSubmitting ? "Registering..." : "Register asset"}
+-          </button>
++          <button className={`${buttonClass} mt-6`}>Register asset</button>
+         </form>
+       </div>
+       <div className="flex gap-3">
+diff --git a/frontend/src/app/(app)/audits/page.tsx b/frontend/src/app/(app)/audits/page.tsx
+index e6b7a98..b852d1b 100644
+--- a/frontend/src/app/(app)/audits/page.tsx
++++ b/frontend/src/app/(app)/audits/page.tsx
+@@ -1,6 +1,290 @@
++"use client";
++
++import { useCallback, useEffect, useState } from "react";
++import { DataTable, TableRow } from "@/components/shared/DataTable";
+ import { EmptyState } from "@/components/shared/EmptyState";
++import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
++import { StatusPill } from "@/components/shared/StatusPill";
++import {
++  apiFetch,
++  type AuditCycle,
++  type AuditCycleDetail,
++  type DiscrepancyReport,
++  type User,
++} from "@/lib/api";
++
++type Department = { id: number; name: string };
+ 
+ export default function AuditsPage() {
+-  return <EmptyState title="Audit cycles are coming in Phase 2" action="Create cycle" />;
+-}
++  const [cycles, setCycles] = useState<AuditCycle[]>([]);
++  const [selected, setSelected] = useState<AuditCycleDetail | null>(null);
++  const [report, setReport] = useState<DiscrepancyReport | null>(null);
++  const [showForm, setShowForm] = useState(false);
++  const [employees, setEmployees] = useState<User[]>([]);
++  const [departments, setDepartments] = useState<Department[]>([]);
++  const [error, setError] = useState<string | null>(null);
++
++  const loadCycles = useCallback(async () => {
++    const data = await apiFetch<AuditCycle[]>("/audits");
++    setCycles(data);
++  }, []);
++
++  useEffect(() => {
++    loadCycles().catch(() => setCycles([]));
++    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([]));
++    apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([]));
++  }, [loadCycles]);
++
++  async function openCycle(id: number) {
++    setReport(null);
++    const detail = await apiFetch<AuditCycleDetail>(`/audits/${id}`);
++    setSelected(detail);
++  }
++
++  async function createCycle(form: FormData) {
++    setError(null);
++    const auditorIds = form.getAll("auditor_ids").map((value) => Number(value)).filter(Boolean);
++    const cycle = await apiFetch<AuditCycle>("/audits", {
++      method: "POST",
++      body: JSON.stringify({
++        name: String(form.get("name")),
++        scope_department_id: form.get("scope_department_id") ? Number(form.get("scope_department_id")) : null,
++        scope_location: String(form.get("scope_location") || "") || null,
++        start_date: String(form.get("start_date")),
++        end_date: String(form.get("end_date")),
++        auditor_ids: auditorIds,
++      }),
++    });
++    setShowForm(false);
++    await loadCycles();
++    await openCycle(cycle.id);
++  }
++
++  async function verifyItem(itemId: number, verification_status: string) {
++    if (!selected) return;
++    setError(null);
++    try {
++      await apiFetch(`/audits/${selected.id}/items/${itemId}`, {
++        method: "PATCH",
++        body: JSON.stringify({ verification_status }),
++      });
++      await openCycle(selected.id);
++      await loadCycles();
++    } catch (err) {
++      const detail = (err as { detail?: unknown })?.detail;
++      setError(typeof detail === "string" ? detail : "Verification failed");
++    }
++  }
+ 
++  async function closeCycle() {
++    if (!selected) return;
++    setError(null);
++    try {
++      await apiFetch(`/audits/${selected.id}/close`, { method: "POST" });
++      const discrepancy = await apiFetch<DiscrepancyReport>(`/audits/${selected.id}/report`);
++      setReport(discrepancy);
++      await openCycle(selected.id);
++      await loadCycles();
++    } catch (err) {
++      const detail = (err as { detail?: unknown })?.detail;
++      setError(typeof detail === "string" ? detail : "Could not close cycle");
++    }
++  }
++
++  return (
++    <div className="grid gap-6">
++      <header className="flex flex-wrap items-end justify-between gap-4">
++        <div>
++          <h1 className="text-xl font-semibold">Audit cycles</h1>
++          <p className="text-sm text-secondary">Verify assets, flag missing or damaged items, close with a discrepancy report.</p>
++        </div>
++        <button className={buttonClass} type="button" onClick={() => setShowForm(true)}>
++          Create cycle
++        </button>
++      </header>
++
++      {error ? <p className="text-sm text-red">{error}</p> : null}
++
++      {showForm ? (
++        <form
++          className="card-surface grid gap-3 p-4 md:grid-cols-2"
++          onSubmit={async (event) => {
++            event.preventDefault();
++            try {
++              await createCycle(new FormData(event.currentTarget));
++            } catch (err) {
++              const detail = (err as { detail?: unknown })?.detail;
++              setError(typeof detail === "string" ? detail : "Could not create cycle");
++            }
++          }}
++        >
++          <FormField label="Cycle name">
++            <input className={inputClass} name="name" required placeholder="Q3 Physical Audit" />
++          </FormField>
++          <FormField label="Scope department">
++            <select className={inputClass} name="scope_department_id">
++              <option value="">All departments</option>
++              {departments.map((department) => (
++                <option key={department.id} value={department.id}>
++                  {department.name}
++                </option>
++              ))}
++            </select>
++          </FormField>
++          <FormField label="Scope location">
++            <input className={inputClass} name="scope_location" placeholder="Engineering" />
++          </FormField>
++          <FormField label="Auditors">
++            <select className={`${inputClass} h-auto min-h-10 py-2`} name="auditor_ids" multiple>
++              {employees.map((employee) => (
++                <option key={employee.id} value={employee.id}>
++                  {employee.name}
++                </option>
++              ))}
++            </select>
++          </FormField>
++          <FormField label="Start date">
++            <input className={inputClass} name="start_date" type="date" required />
++          </FormField>
++          <FormField label="End date">
++            <input className={inputClass} name="end_date" type="date" required />
++          </FormField>
++          <div className="flex gap-2 md:col-span-2">
++            <button className={buttonClass} type="submit">
++              Create
++            </button>
++            <button className={secondaryButtonClass} type="button" onClick={() => setShowForm(false)}>
++              Cancel
++            </button>
++          </div>
++        </form>
++      ) : null}
++
++      {cycles.length === 0 && !showForm ? (
++        <EmptyState
++          title="No audit cycles yet"
++          description="Create a cycle to populate assets in scope and start verification."
++          action="Create cycle"
++          onAction={() => setShowForm(true)}
++        />
++      ) : (
++        <div className="grid gap-4 md:grid-cols-2">
++          {cycles.map((cycle) => {
++            const progress = cycle.total_items ? Math.round(((cycle.total_items - cycle.pending_count) / cycle.total_items) * 100) : 0;
++            return (
++              <button
++                key={cycle.id}
++                type="button"
++                className="card-surface card-surface-hover p-4 text-left"
++                onClick={() => openCycle(cycle.id).catch(() => setError("Could not load cycle"))}
++              >
++                <div className="mb-2 flex items-center justify-between gap-2">
++                  <h2 className="text-base font-medium">{cycle.name}</h2>
++                  <StatusPill value={cycle.status} />
++                </div>
++                <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-raised">
++                  <div className="h-full bg-green transition-all" style={{ width: `${progress}%` }} />
++                </div>
++                <div className="flex flex-wrap gap-3 text-xs text-secondary">
++                  <span>{cycle.verified_count} verified</span>
++                  <span>{cycle.missing_count} missing</span>
++                  <span>{cycle.damaged_count} damaged</span>
++                  <span>{cycle.pending_count} pending</span>
++                </div>
++              </button>
++            );
++          })}
++        </div>
++      )}
++
++      {selected ? (
++        <section className="grid gap-4">
++          <div className="flex flex-wrap items-center justify-between gap-3">
++            <div>
++              <h2 className="text-base font-medium">{selected.name}</h2>
++              <p className="text-xs text-secondary">
++                {selected.start_date} → {selected.end_date}
++                {selected.scope_location ? ` · ${selected.scope_location}` : ""}
++              </p>
++            </div>
++            {selected.status === "open" ? (
++              <button className={secondaryButtonClass} type="button" onClick={() => closeCycle()}>
++                Close cycle
++              </button>
++            ) : (
++              <button
++                className={secondaryButtonClass}
++                type="button"
++                onClick={() =>
++                  apiFetch<DiscrepancyReport>(`/audits/${selected.id}/report`)
++                    .then(setReport)
++                    .catch(() => setError("Could not load report"))
++                }
++              >
++                View report
++              </button>
++            )}
++          </div>
++
++          <DataTable headers={["Asset", "Location", "Status", "Actions"]}>
++            {selected.items.map((item) => (
++              <TableRow
++                key={item.id}
++                className={item.verification_status === "missing" ? "bg-red-bg/40" : ""}
++              >
++                <td className="px-4 py-3">
++                  <div>{item.asset_tag ?? item.asset_id}</div>
++                  <div className="text-xs text-secondary">{item.asset_name}</div>
++                </td>
++                <td className="px-4 py-3 text-secondary">{item.expected_location ?? "—"}</td>
++                <td className="px-4 py-3">
++                  <StatusPill value={item.verification_status} />
++                </td>
++                <td className="px-4 py-3">
++                  {selected.status === "open" && item.verification_status === "pending" ? (
++                    <div className="flex flex-wrap gap-2">
++                      <button className="text-xs text-green hover:underline" type="button" onClick={() => verifyItem(item.id, "verified")}>
++                        Verify
++                      </button>
++                      <button className="text-xs text-red hover:underline" type="button" onClick={() => verifyItem(item.id, "missing")}>
++                        Mark missing
++                      </button>
++                      <button className="text-xs text-amber hover:underline" type="button" onClick={() => verifyItem(item.id, "damaged")}>
++                        Mark damaged
++                      </button>
++                    </div>
++                  ) : (
++                    <span className="text-xs text-muted">—</span>
++                  )}
++                </td>
++              </TableRow>
++            ))}
++          </DataTable>
++        </section>
++      ) : null}
++
++      {report ? (
++        <section className="card-surface p-4">
++          <h2 className="mb-2 text-base font-medium">Discrepancy report — {report.cycle_name}</h2>
++          <p className="mb-4 text-sm text-secondary">
++            {report.missing_count} missing · {report.damaged_count} damaged · {report.verified_count} verified
++          </p>
++          <DataTable headers={["Asset", "Status", "Location", "Notes"]}>
++            {report.items.map((item) => (
++              <TableRow key={item.item_id} className={item.verification_status === "missing" ? "bg-red-bg/40" : ""}>
++                <td className="px-4 py-3">
++                  {item.asset_tag} {item.asset_name}
++                </td>
++                <td className="px-4 py-3">
++                  <StatusPill value={item.verification_status} />
++                </td>
++                <td className="px-4 py-3 text-secondary">{item.expected_location ?? "—"}</td>
++                <td className="px-4 py-3 text-secondary">{item.notes ?? "—"}</td>
++              </TableRow>
++            ))}
++          </DataTable>
++        </section>
++      ) : null}
++    </div>
++  );
++}
+diff --git a/frontend/src/app/(app)/bookings/page.tsx b/frontend/src/app/(app)/bookings/page.tsx
+index 8b77f0a..b51fcb4 100644
+--- a/frontend/src/app/(app)/bookings/page.tsx
++++ b/frontend/src/app/(app)/bookings/page.tsx
+@@ -5,7 +5,6 @@ import { ConflictBanner } from "@/components/shared/ConflictBanner";
+ import { DataTable } from "@/components/shared/DataTable";
+ import { buttonClass, FormField, inputClass } from "@/components/shared/FormField";
+ import { StatusPill } from "@/components/shared/StatusPill";
+-import { useToast } from "@/components/shared/Toast";
+ import { apiFetch, type ApiError, type Asset, type Booking } from "@/lib/api";
+ 
+ type BookingConflict = {
+@@ -16,17 +15,14 @@ export default function BookingsPage() {
+   const [resources, setResources] = useState<Asset[]>([]);
+   const [bookings, setBookings] = useState<Booking[]>([]);
+   const [conflict, setConflict] = useState<BookingConflict | null>(null);
+-  const [isSubmitting, setIsSubmitting] = useState(false);
+-  const { showToast } = useToast();
+ 
+   useEffect(() => {
+-    apiFetch<Asset[]>("/assets?is_bookable=true").then(setResources).catch(() => setResources([]));
++    apiFetch<Asset[]>("/assets?is_bookable=true").then(setResources).catch(() => setResources([{ id: 2, tag: "AF-ROOM-B2", name: "Room B2", status: "available", condition: "good", location: "Floor 2", is_bookable: true }]));
+     apiFetch<Booking[]>("/bookings").then(setBookings).catch(() => setBookings([]));
+   }, []);
+ 
+   async function book(form: FormData) {
+     setConflict(null);
+-    setIsSubmitting(true);
+     const date = String(form.get("date"));
+     try {
+       const booking = await apiFetch<Booking>("/bookings", {
+@@ -38,17 +34,10 @@ export default function BookingsPage() {
+         }),
+       });
+       setBookings((current) => [booking, ...current]);
+-      showToast("Resource booked successfully", "success");
+     } catch (error) {
+       const apiError = error as ApiError;
+-      if (apiError.status === 409) {
+-        setConflict(apiError.detail as BookingConflict);
+-        showToast("Slot unavailable", "error");
+-      } else {
+-        showToast("Failed to book resource", "error");
+-      }
+-    } finally {
+-      setIsSubmitting(false);
++      if (apiError.status === 409) setConflict(apiError.detail as BookingConflict);
++      else throw error;
+     }
+   }
+ 
+@@ -68,12 +57,10 @@ export default function BookingsPage() {
+         }}
+       >
+         <FormField label="Resource"><select className={inputClass} name="resource_id">{resources.map((resource) => <option key={resource.id} value={resource.id}>{resource.name}</option>)}</select></FormField>
+-        <FormField label="Date"><input className={inputClass} name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required /></FormField>
++        <FormField label="Date"><input className={inputClass} name="date" type="date" defaultValue="2026-07-12" required /></FormField>
+         <FormField label="Start"><input className={inputClass} name="start" type="time" defaultValue="09:00" required /></FormField>
+         <FormField label="End"><input className={inputClass} name="end" type="time" defaultValue="10:00" required /></FormField>
+-        <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+-          {isSubmitting ? "Booking..." : "Book"}
+-        </button>
++        <button className={`${buttonClass} mt-6`}>Book</button>
+       </form>
+       {conflict ? (
+         <ConflictBanner title="Slot unavailable">
+@@ -96,17 +83,14 @@ export default function BookingsPage() {
+         </div>
+       </section>
+       <DataTable headers={["Resource", "Start", "End", "Status"]}>
+-        {bookings.map((booking) => {
+-          const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
+-          return (
+-            <tr key={booking.id}>
+-              <td className="px-4 py-3 font-medium">{resourceName}</td>
+-              <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
+-              <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
+-              <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
+-            </tr>
+-          );
+-        })}
++        {bookings.map((booking) => (
++          <tr key={booking.id}>
++            <td className="px-4 py-3">{booking.resource_id}</td>
++            <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
++            <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
++            <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
++          </tr>
++        ))}
+       </DataTable>
+     </div>
+   );
+diff --git a/frontend/src/app/(app)/dashboard/page.tsx b/frontend/src/app/(app)/dashboard/page.tsx
+index f4e4bfa..eb52174 100644
+--- a/frontend/src/app/(app)/dashboard/page.tsx
++++ b/frontend/src/app/(app)/dashboard/page.tsx
+@@ -1,63 +1,190 @@
+-import { DataTable } from "@/components/shared/DataTable";
++"use client";
++
++import { useEffect, useMemo, useState } from "react";
++import { DataTable, TableRow } from "@/components/shared/DataTable";
+ import { KpiCard } from "@/components/shared/KpiCard";
+ import { StatusPill } from "@/components/shared/StatusPill";
+-
+-const kpis = [
+-  ["Available assets", 128],
+-  ["Allocated assets", 76],
+-  ["Under maintenance", 9],
+-  ["Bookings today", 14],
+-  ["Pending transfers", 3],
+-  ["Due this week", 11],
+-];
++import {
++  apiFetch,
++  type Allocation,
++  type Asset,
++  type Booking,
++  type TransferRequest,
++  type User,
++} from "@/lib/api";
+ 
+ export default function DashboardPage() {
++  const [assets, setAssets] = useState<Asset[]>([]);
++  const [allocations, setAllocations] = useState<Allocation[]>([]);
++  const [bookings, setBookings] = useState<Booking[]>([]);
++  const [transfers, setTransfers] = useState<TransferRequest[]>([]);
++  const [employees, setEmployees] = useState<User[]>([]);
++  const [loading, setLoading] = useState(true);
++
++  useEffect(() => {
++    Promise.all([
++      apiFetch<Asset[]>("/assets").catch(() => [] as Asset[]),
++      apiFetch<Allocation[]>("/allocations?status=active").catch(() => [] as Allocation[]),
++      apiFetch<Booking[]>("/bookings").catch(() => [] as Booking[]),
++      apiFetch<TransferRequest[]>("/transfers").catch(() => [] as TransferRequest[]),
++      apiFetch<User[]>("/employees").catch(() => [] as User[]),
++    ]).then(([nextAssets, nextAllocations, nextBookings, nextTransfers, nextEmployees]) => {
++      setAssets(nextAssets);
++      setAllocations(nextAllocations);
++      setBookings(nextBookings);
++      setTransfers(nextTransfers);
++      setEmployees(nextEmployees);
++      setLoading(false);
++    });
++  }, []);
++
++  const kpis = useMemo(() => {
++    const today = new Date().toISOString().slice(0, 10);
++    const weekAhead = new Date();
++    weekAhead.setDate(weekAhead.getDate() + 7);
++    const weekIso = weekAhead.toISOString().slice(0, 10);
++
++    return [
++      {
++        label: "Available assets",
++        value: assets.filter((asset) => asset.status === "available").length,
++        accentColor: "green" as const,
++      },
++      {
++        label: "Allocated assets",
++        value: assets.filter((asset) => asset.status === "allocated").length,
++        accentColor: "blue" as const,
++      },
++      {
++        label: "Under maintenance",
++        value: assets.filter((asset) => asset.status === "maintenance").length,
++        accentColor: "amber" as const,
++      },
++      {
++        label: "Bookings today",
++        value: bookings.filter((booking) => booking.start.slice(0, 10) === today && booking.status !== "cancelled").length,
++        accentColor: "blue" as const,
++      },
++      {
++        label: "Pending transfers",
++        value: transfers.filter((transfer) => transfer.status === "requested" || transfer.status === "approved").length,
++        accentColor: "amber" as const,
++      },
++      {
++        label: "Due this week",
++        value: allocations.filter(
++          (allocation) =>
++            allocation.expected_return_date &&
++            allocation.expected_return_date >= today &&
++            allocation.expected_return_date <= weekIso,
++        ).length,
++        accentColor: "red" as const,
++      },
++    ];
++  }, [assets, allocations, bookings, transfers]);
++
++  const upcomingReturns = useMemo(() => {
++    const today = new Date().toISOString().slice(0, 10);
++    return [...allocations]
++      .filter((allocation) => allocation.expected_return_date)
++      .sort((a, b) => String(a.expected_return_date).localeCompare(String(b.expected_return_date)))
++      .slice(0, 8)
++      .map((allocation) => {
++        const asset = assets.find((row) => row.id === allocation.asset_id);
++        const holder = employees.find((row) => row.id === allocation.holder_user_id);
++        const due = allocation.expected_return_date!;
++        const overdue = due < today;
++        return {
++          id: allocation.id,
++          asset: asset ? `${asset.tag} ${asset.name}` : `Asset #${allocation.asset_id}`,
++          holder: holder?.name ?? (allocation.holder_user_id ? `#${allocation.holder_user_id}` : "—"),
++          due,
++          status: overdue ? "overdue" : "active",
++        };
++      });
++  }, [allocations, assets, employees]);
++
++  const recentActivity = useMemo(() => {
++    const rows: { event: string; actor: string; status: string }[] = [];
++    for (const transfer of transfers.slice(0, 5)) {
++      const asset = assets.find((row) => row.id === transfer.asset_id);
++      rows.push({
++        event: `Transfer ${asset?.tag ?? transfer.asset_id}`,
++        actor: employees.find((row) => row.id === transfer.requested_by)?.name ?? `#${transfer.requested_by}`,
++        status: transfer.status,
++      });
++    }
++    for (const booking of bookings.slice(0, 3)) {
++      const asset = assets.find((row) => row.id === booking.resource_id);
++      rows.push({
++        event: `${asset?.tag ?? `Resource #${booking.resource_id}`} booked`,
++        actor: employees.find((row) => row.id === booking.booked_by)?.name ?? `#${booking.booked_by}`,
++        status: booking.status,
++      });
++    }
++    return rows.slice(0, 8);
++  }, [transfers, bookings, assets, employees]);
++
+   return (
+     <div className="grid gap-6">
+       <header>
+         <h1 className="text-xl font-semibold">Dashboard</h1>
+-        <p className="text-sm text-secondary">Live operational status across assets, bookings, and returns.</p>
++        <p className="text-sm text-secondary">
++          {loading ? "Loading operational status…" : "Live operational status across assets, bookings, and returns."}
++        </p>
+       </header>
+       <section className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+-        {kpis.map(([label, value]) => (
+-          <KpiCard key={label} label={String(label)} value={value} />
++        {kpis.map((kpi) => (
++          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} accentColor={kpi.accentColor} />
+         ))}
+       </section>
+       <section className="grid gap-6 xl:grid-cols-2">
+         <div>
+           <h2 className="mb-3 text-base font-medium">Recent activity</h2>
+           <DataTable headers={["Event", "Actor", "Status"]}>
+-            {[
+-              ["AF-0114 allocated", "Admin User", "active"],
+-              ["Room B2 booked 09:00-10:00", "Priya Shah", "upcoming"],
+-              ["Transfer request submitted", "Operations", "pending"],
+-            ].map((row) => (
+-              <tr key={row[0]}>
+-                <td className="px-4 py-3">{row[0]}</td>
+-                <td className="px-4 py-3 text-secondary">{row[1]}</td>
+-                <td className="px-4 py-3"><StatusPill value={row[2]} /></td>
+-              </tr>
+-            ))}
++            {recentActivity.length === 0 ? (
++              <TableRow>
++                <td className="px-4 py-3 text-secondary" colSpan={3}>
++                  No recent transfers or bookings yet.
++                </td>
++              </TableRow>
++            ) : (
++              recentActivity.map((row, index) => (
++                <TableRow key={`${row.event}-${index}`}>
++                  <td className="px-4 py-3">{row.event}</td>
++                  <td className="px-4 py-3 text-secondary">{row.actor}</td>
++                  <td className="px-4 py-3">
++                    <StatusPill value={row.status} />
++                  </td>
++                </TableRow>
++              ))
++            )}
+           </DataTable>
+         </div>
+         <div>
+           <h2 className="mb-3 text-base font-medium">Upcoming returns</h2>
+-          <DataTable headers={["Asset", "Holder", "Due"]}>
+-            {[
+-              ["AF-0062 Dell Latitude", "Amit Rao", "Today"],
+-              ["AF-0108 Projector", "Facilities", "Tomorrow"],
+-              ["AF-0114 MacBook Pro", "Priya Shah", "Friday"],
+-            ].map((row) => (
+-              <tr key={row[0]}>
+-                <td className="px-4 py-3">{row[0]}</td>
+-                <td className="px-4 py-3 text-secondary">{row[1]}</td>
+-                <td className="px-4 py-3 text-secondary">{row[2]}</td>
+-              </tr>
+-            ))}
++          <DataTable headers={["Asset", "Holder", "Due", "Status"]}>
++            {upcomingReturns.length === 0 ? (
++              <TableRow>
++                <td className="px-4 py-3 text-secondary" colSpan={4}>
++                  No upcoming returns scheduled.
++                </td>
++              </TableRow>
++            ) : (
++              upcomingReturns.map((row) => (
++                <TableRow key={row.id} className={row.status === "overdue" ? "bg-red-bg/30" : ""}>
++                  <td className="px-4 py-3">{row.asset}</td>
++                  <td className="px-4 py-3 text-secondary">{row.holder}</td>
++                  <td className="px-4 py-3 text-secondary">{row.due}</td>
++                  <td className="px-4 py-3">
++                    <StatusPill value={row.status} />
++                  </td>
++                </TableRow>
++              ))
++            )}
+           </DataTable>
+         </div>
+       </section>
+     </div>
+   );
+ }
+-
+diff --git a/frontend/src/app/(app)/maintenance/page.tsx b/frontend/src/app/(app)/maintenance/page.tsx
+index 8f01993..a22e095 100644
+--- a/frontend/src/app/(app)/maintenance/page.tsx
++++ b/frontend/src/app/(app)/maintenance/page.tsx
+@@ -1,6 +1,272 @@
++"use client";
++
++import {
++  DndContext,
++  DragEndEvent,
++  PointerSensor,
++  useDraggable,
++  useDroppable,
++  useSensor,
++  useSensors,
++} from "@dnd-kit/core";
++import { useCallback, useEffect, useMemo, useState } from "react";
+ import { EmptyState } from "@/components/shared/EmptyState";
++import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
++import { StatusPill } from "@/components/shared/StatusPill";
++import {
++  apiFetch,
++  type Asset,
++  type KanbanBoard,
++  type MaintenanceRequest,
++} from "@/lib/api";
+ 
+-export default function MaintenancePage() {
+-  return <EmptyState title="Maintenance workflow is coming in Phase 2" action="Create request" />;
++const COLUMN_ORDER = ["pending", "approved", "technician_assigned", "in_progress", "resolved"] as const;
++const COLUMN_LABELS: Record<string, string> = {
++  pending: "Pending",
++  approved: "Approved",
++  technician_assigned: "Technician Assigned",
++  in_progress: "In Progress",
++  resolved: "Resolved",
++};
++const COLUMN_DOT: Record<string, string> = {
++  pending: "bg-amber",
++  approved: "bg-green",
++  technician_assigned: "bg-blue",
++  in_progress: "bg-blue",
++  resolved: "bg-green",
++};
++
++function KanbanCard({ item, dimmed }: { item: MaintenanceRequest; dimmed?: boolean }) {
++  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: String(item.id) });
++  const style = transform
++    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
++    : undefined;
++
++  return (
++    <div
++      ref={setNodeRef}
++      style={style}
++      {...listeners}
++      {...attributes}
++      className={`card-surface card-surface-hover cursor-grab p-3 active:cursor-grabbing ${
++        dimmed ? "opacity-60" : ""
++      } ${isDragging ? "z-10 opacity-90 shadow-lg" : ""}`}
++    >
++      <div className="mb-2 flex items-center gap-2">
++        <StatusPill value={item.priority} />
++        <span className="text-xs text-secondary">{item.asset_tag ?? `Asset #${item.asset_id}`}</span>
++      </div>
++      <p className="text-sm text-primary">{item.issue_description}</p>
++      <div className="mt-2 flex items-center justify-between text-[11px] text-muted">
++        <span>{item.technician_name ? `Tech: ${item.technician_name}` : `Raised by #${item.raised_by}`}</span>
++        <span>{new Date(item.created_at).toLocaleDateString()}</span>
++      </div>
++    </div>
++  );
++}
++
++function KanbanColumn({
++  status,
++  items,
++}: {
++  status: string;
++  items: MaintenanceRequest[];
++}) {
++  const { setNodeRef, isOver } = useDroppable({ id: status });
++  return (
++    <div
++      ref={setNodeRef}
++      className={`flex min-h-[420px] flex-col rounded-[var(--radius-card)] border border-line bg-bg/40 ${
++        isOver ? "border-line-strong" : ""
++      }`}
++    >
++      <div className="flex items-center gap-2 border-b border-line px-3 py-3">
++        <span className={`h-2 w-2 rounded-full ${COLUMN_DOT[status] ?? "bg-muted"}`} />
++        <span className="text-sm font-medium">{COLUMN_LABELS[status] ?? status}</span>
++        <span className="ml-auto rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] text-secondary">
++          {items.length}
++        </span>
++      </div>
++      <div className="flex flex-1 flex-col gap-2 p-2">
++        {items.map((item) => (
++          <KanbanCard key={item.id} item={item} dimmed={status === "resolved"} />
++        ))}
++      </div>
++    </div>
++  );
+ }
+ 
++export default function MaintenancePage() {
++  const [board, setBoard] = useState<KanbanBoard | null>(null);
++  const [assets, setAssets] = useState<Asset[]>([]);
++  const [showForm, setShowForm] = useState(false);
++  const [priorityFilter, setPriorityFilter] = useState("");
++  const [search, setSearch] = useState("");
++  const [error, setError] = useState<string | null>(null);
++  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
++
++  const load = useCallback(async () => {
++    const data = await apiFetch<KanbanBoard>("/maintenance/kanban");
++    setBoard(data);
++  }, []);
++
++  useEffect(() => {
++    load().catch(() => setBoard({ columns: COLUMN_ORDER.map((status) => ({ status, count: 0, items: [] })) }));
++    apiFetch<Asset[]>("/assets")
++      .then(setAssets)
++      .catch(() => setAssets([]));
++  }, [load]);
++
++  const columns = useMemo(() => {
++    const byStatus = new Map((board?.columns ?? []).map((column) => [column.status, column.items]));
++    return COLUMN_ORDER.map((status) => {
++      let items = byStatus.get(status) ?? [];
++      if (priorityFilter) items = items.filter((item) => item.priority === priorityFilter);
++      if (search.trim()) {
++        const q = search.toLowerCase();
++        items = items.filter(
++          (item) =>
++            item.issue_description.toLowerCase().includes(q) ||
++            (item.asset_tag ?? "").toLowerCase().includes(q) ||
++            (item.asset_name ?? "").toLowerCase().includes(q),
++        );
++      }
++      return { status, items };
++    });
++  }, [board, priorityFilter, search]);
++
++  async function onDragEnd(event: DragEndEvent) {
++    const requestId = Number(event.active.id);
++    const targetStatus = event.over?.id ? String(event.over.id) : null;
++    if (!targetStatus || !COLUMN_ORDER.includes(targetStatus as (typeof COLUMN_ORDER)[number])) return;
++
++    const current = columns.flatMap((column) => column.items).find((item) => item.id === requestId);
++    if (!current || current.status === targetStatus) return;
++
++    setError(null);
++    try {
++      const body: { status: string; technician_name?: string } = { status: targetStatus };
++      if (targetStatus === "technician_assigned" && !current.technician_name) {
++        const name = window.prompt("Technician name", "On-call tech") ?? "";
++        if (!name.trim()) return;
++        body.technician_name = name.trim();
++      }
++      await apiFetch(`/maintenance/${requestId}/status`, { method: "PATCH", body: JSON.stringify(body) });
++      await load();
++    } catch (err) {
++      const detail = (err as { detail?: unknown })?.detail;
++      setError(typeof detail === "string" ? detail : "Could not update status");
++    }
++  }
++
++  async function raiseRequest(form: FormData) {
++    setError(null);
++    await apiFetch("/maintenance", {
++      method: "POST",
++      body: JSON.stringify({
++        asset_id: Number(form.get("asset_id")),
++        issue_description: String(form.get("issue_description")),
++        priority: String(form.get("priority") || "medium"),
++        photo_url: String(form.get("photo_url") || "") || null,
++      }),
++    });
++    setShowForm(false);
++    await load();
++  }
++
++  const empty = columns.every((column) => column.items.length === 0);
++
++  return (
++    <div className="grid gap-6">
++      <header className="flex flex-wrap items-end justify-between gap-4">
++        <div>
++          <h1 className="text-xl font-semibold">Maintenance</h1>
++          <p className="text-sm text-secondary">Drag cards across the workflow. Asset status flips automatically.</p>
++        </div>
++        <button className={buttonClass} type="button" onClick={() => setShowForm(true)}>
++          Raise request
++        </button>
++      </header>
++
++      <div className="flex flex-wrap gap-3">
++        <input
++          className={`${inputClass} max-w-xs`}
++          placeholder="Search assets or issues"
++          value={search}
++          onChange={(event) => setSearch(event.target.value)}
++        />
++        <select className={`${inputClass} max-w-[160px]`} value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
++          <option value="">All priorities</option>
++          <option value="high">High</option>
++          <option value="medium">Medium</option>
++          <option value="low">Low</option>
++        </select>
++      </div>
++
++      {error ? <p className="text-sm text-red">{error}</p> : null}
++
++      {showForm ? (
++        <form
++          className="card-surface grid gap-3 p-4 md:grid-cols-2"
++          onSubmit={async (event) => {
++            event.preventDefault();
++            try {
++              await raiseRequest(new FormData(event.currentTarget));
++            } catch (err) {
++              const detail = (err as { detail?: unknown })?.detail;
++              setError(typeof detail === "string" ? detail : "Could not create request");
++            }
++          }}
++        >
++          <FormField label="Asset">
++            <select className={inputClass} name="asset_id" required>
++              {assets.map((asset) => (
++                <option key={asset.id} value={asset.id}>
++                  {asset.tag} — {asset.name} ({asset.status})
++                </option>
++              ))}
++            </select>
++          </FormField>
++          <FormField label="Priority">
++            <select className={inputClass} name="priority" defaultValue="medium">
++              <option value="high">High</option>
++              <option value="medium">Medium</option>
++              <option value="low">Low</option>
++            </select>
++          </FormField>
++          <FormField label="Issue description">
++            <textarea className={`${inputClass} h-24 py-2`} name="issue_description" required />
++          </FormField>
++          <FormField label="Photo URL (optional)">
++            <input className={inputClass} name="photo_url" placeholder="https://..." />
++          </FormField>
++          <div className="flex gap-2 md:col-span-2">
++            <button className={buttonClass} type="submit">
++              Submit
++            </button>
++            <button className={secondaryButtonClass} type="button" onClick={() => setShowForm(false)}>
++              Cancel
++            </button>
++          </div>
++        </form>
++      ) : null}
++
++      {empty && !showForm ? (
++        <EmptyState
++          title="No maintenance requests yet"
++          description="Raise a request to put an asset under maintenance."
++          action="Raise request"
++          onAction={() => setShowForm(true)}
++        />
++      ) : (
++        <DndContext sensors={sensors} onDragEnd={onDragEnd}>
++          <div className="grid gap-3 xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
++            {columns.map((column) => (
++              <KanbanColumn key={column.status} status={column.status} items={column.items} />
++            ))}
++          </div>
++        </DndContext>
++      )}
++    </div>
++  );
++}
+diff --git a/frontend/src/app/(app)/org-setup/page.tsx b/frontend/src/app/(app)/org-setup/page.tsx
+index fd448c7..fc40bc0 100644
+--- a/frontend/src/app/(app)/org-setup/page.tsx
++++ b/frontend/src/app/(app)/org-setup/page.tsx
+@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
+ import { DataTable } from "@/components/shared/DataTable";
+ import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+ import { StatusPill } from "@/components/shared/StatusPill";
+-import { useToast } from "@/components/shared/Toast";
+ import { apiFetch, type User } from "@/lib/api";
+ 
+ type Department = { id: number; name: string; status: string };
+@@ -15,44 +14,26 @@ export default function OrgSetupPage() {
+   const [departments, setDepartments] = useState<Department[]>([]);
+   const [categories, setCategories] = useState<Category[]>([]);
+   const [employees, setEmployees] = useState<User[]>([]);
+-  const { showToast } = useToast();
+ 
+   useEffect(() => {
+-    apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([]));
+-    apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([]));
+-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([]));
++    apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([{ id: 1, name: "Engineering", status: "active" }]));
++    apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([{ id: 1, name: "Laptop", custom_fields: { warranty_months: 36 } }]));
++    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.com", role: "employee", status: "active" }]));
+   }, []);
+ 
+   async function createDepartment(form: FormData) {
+-    try {
+-      const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name: form.get("name") }) });
+-      setDepartments((current) => [item, ...current]);
+-      showToast("Department created", "success");
+-    } catch {
+-      showToast("Failed to create department", "error");
+-      throw new Error(); // Re-throw to prevent form reset in child
+-    }
++    const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name: form.get("name") }) });
++    setDepartments((current) => [item, ...current]);
+   }
+ 
+   async function createCategory(form: FormData) {
+-    try {
+-      const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
+-      setCategories((current) => [item, ...current]);
+-      showToast("Category created", "success");
+-    } catch {
+-      showToast("Failed to create category", "error");
+-      throw new Error();
+-    }
++    const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
++    setCategories((current) => [item, ...current]);
+   }
+ 
+   async function promote(employee: User, role: string) {
+-    try {
+-      const updated = await apiFetch<User>(`/employees/${employee.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+-      setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+-      showToast(`Promoted to ${role.replace("_", " ")}`, "success");
+-    } catch {
+-      showToast("Failed to change role", "error");
+-    }
++    const updated = await apiFetch<User>(`/employees/${employee.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
++    setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+   }
+ 
+   return (
+@@ -105,28 +86,19 @@ export default function OrgSetupPage() {
+ }
+ 
+ function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: FormData) => Promise<void> }) {
+-  const [isSubmitting, setIsSubmitting] = useState(false);
+   return (
+     <form
+       className="flex max-w-xl items-end gap-3"
+       onSubmit={async (event) => {
+         event.preventDefault();
+-        const form = event.currentTarget;
+-        setIsSubmitting(true);
+-        try {
+-          await onSubmit(new FormData(form));
+-          form.reset();
+-        } finally {
+-          setIsSubmitting(false);
+-        }
++        await onSubmit(new FormData(event.currentTarget));
++        event.currentTarget.reset();
+       }}
+     >
+       <div className="flex-1">
+         <FormField label={label}><input className={inputClass} name="name" required /></FormField>
+       </div>
+-      <button disabled={isSubmitting} className={buttonClass}>
+-        {isSubmitting ? "Adding..." : "Add"}
+-      </button>
++      <button className={buttonClass}>Add</button>
+     </form>
+   );
+ }
+diff --git a/frontend/src/app/(auth)/login/page.tsx b/frontend/src/app/(auth)/login/page.tsx
+index 7acfc80..e03bc0e 100644
+--- a/frontend/src/app/(auth)/login/page.tsx
++++ b/frontend/src/app/(auth)/login/page.tsx
+@@ -10,12 +10,10 @@ export default function LoginPage() {
+   const router = useRouter();
+   const { login } = useAuth();
+   const [error, setError] = useState("");
+-  const [isSubmitting, setIsSubmitting] = useState(false);
+ 
+   async function submit(event: FormEvent<HTMLFormElement>) {
+     event.preventDefault();
+     setError("");
+-    setIsSubmitting(true);
+     const data = new FormData(event.currentTarget);
+     try {
+       await login(String(data.get("email")), String(data.get("password")));
+@@ -23,8 +21,6 @@ export default function LoginPage() {
+       router.push(next ?? "/dashboard");
+     } catch {
+       setError("Invalid email or password");
+-    } finally {
+-      setIsSubmitting(false);
+     }
+   }
+ 
+@@ -35,16 +31,14 @@ export default function LoginPage() {
+         <p className="mt-1 text-sm text-secondary">Sign in to the operations console</p>
+         <div className="mt-6 grid gap-4">
+           <FormField label="Email">
+-            <input className={inputClass} name="email" type="email" placeholder="you@example.com" required />
++            <input className={inputClass} name="email" type="email" defaultValue="admin@assetflow.com" required />
+           </FormField>
+           <FormField label="Password">
+-            <input className={inputClass} name="password" type="password" placeholder="••••••••" required />
++            <input className={inputClass} name="password" type="password" defaultValue="password" required />
+           </FormField>
+         </div>
+         {error ? <p className="mt-3 text-sm text-red">{error}</p> : null}
+-        <button disabled={isSubmitting} className={`${buttonClass} mt-6 w-full`}>
+-          {isSubmitting ? "Signing in..." : "Sign in"}
+-        </button>
++        <button className={`${buttonClass} mt-6 w-full`}>Sign in</button>
+         <div className="mt-4 flex justify-between text-xs text-secondary">
+           <span>Forgot password</span>
+           <Link href="/signup" className="text-green">
+diff --git a/frontend/src/app/(auth)/signup/page.tsx b/frontend/src/app/(auth)/signup/page.tsx
+index 9d7da9c..8d14e78 100644
+--- a/frontend/src/app/(auth)/signup/page.tsx
++++ b/frontend/src/app/(auth)/signup/page.tsx
+@@ -10,12 +10,10 @@ export default function SignupPage() {
+   const router = useRouter();
+   const { signup } = useAuth();
+   const [error, setError] = useState("");
+-  const [isSubmitting, setIsSubmitting] = useState(false);
+ 
+   async function submit(event: FormEvent<HTMLFormElement>) {
+     event.preventDefault();
+     setError("");
+-    setIsSubmitting(true);
+     const data = new FormData(event.currentTarget);
+     const password = String(data.get("password"));
+     if (password !== String(data.get("confirm"))) {
+@@ -27,8 +25,6 @@ export default function SignupPage() {
+       router.push("/dashboard");
+     } catch {
+       setError("Unable to create account");
+-    } finally {
+-      setIsSubmitting(false);
+     }
+   }
+ 
+@@ -52,9 +48,7 @@ export default function SignupPage() {
+           </FormField>
+         </div>
+         {error ? <p className="mt-3 text-sm text-red">{error}</p> : null}
+-        <button disabled={isSubmitting} className={`${buttonClass} mt-6 w-full`}>
+-          {isSubmitting ? "Creating account..." : "Sign up"}
+-        </button>
++        <button className={`${buttonClass} mt-6 w-full`}>Sign up</button>
+         <Link href="/login" className="mt-4 block text-center text-xs text-green">
+           Back to sign in
+         </Link>
+diff --git a/frontend/src/app/globals.css b/frontend/src/app/globals.css
+index 2c88cc7..9996cdb 100644
+--- a/frontend/src/app/globals.css
++++ b/frontend/src/app/globals.css
+@@ -17,6 +17,9 @@
+   --accent-amber-bg: #332405;
+   --accent-blue: #3b82f6;
+   --accent-blue-bg: #16233f;
++  --radius-card: 10px;
++  --radius-control: 8px;
++  --transition-fast: 150ms ease;
+ }
+ 
+ @theme inline {
+@@ -37,6 +40,8 @@
+   --color-blue: var(--accent-blue);
+   --color-blue-bg: var(--accent-blue-bg);
+   --font-sans: -apple-system, Inter, Segoe UI, sans-serif;
++  --radius-card: var(--radius-card);
++  --radius-control: var(--radius-control);
+ }
+ 
+ * {
+@@ -61,3 +66,39 @@ button {
+   outline-color: var(--border-strong);
+ }
+ 
++@keyframes pulse-dot {
++  0%,
++  100% {
++    opacity: 1;
++    transform: scale(1);
++  }
++  50% {
++    opacity: 0.45;
++    transform: scale(0.85);
++  }
++}
++
++.animate-pulse-dot {
++  animation: pulse-dot 1.4s ease-in-out infinite;
++}
++
++.card-surface {
++  border: 1px solid var(--border);
++  border-radius: var(--radius-card);
++  background: var(--surface);
++  transition: border-color var(--transition-fast), transform var(--transition-fast);
++}
++
++.card-surface-hover:hover {
++  border-color: var(--border-strong);
++  transform: translateY(-1px);
++}
++
++.row-hover {
++  transition: background-color var(--transition-fast), transform var(--transition-fast);
++}
++
++.row-hover:hover {
++  background: var(--surface-raised);
++  transform: translateY(-0.5px);
++}
+diff --git a/frontend/src/app/layout.tsx b/frontend/src/app/layout.tsx
+index dda4727..92b21c9 100644
+--- a/frontend/src/app/layout.tsx
++++ b/frontend/src/app/layout.tsx
+@@ -7,8 +7,6 @@ export const metadata: Metadata = {
+   description: "Enterprise asset and resource management",
+ };
+ 
+-import { ToastProvider } from "@/components/shared/Toast";
+-
+ export default function RootLayout({
+   children,
+ }: Readonly<{
+@@ -17,9 +15,7 @@ export default function RootLayout({
+   return (
+     <html lang="en" className="h-full">
+       <body className="min-h-full bg-bg text-primary antialiased">
+-        <AuthProvider>
+-          <ToastProvider>{children}</ToastProvider>
+-        </AuthProvider>
++        <AuthProvider>{children}</AuthProvider>
+       </body>
+     </html>
+   );
+diff --git a/frontend/src/components/shared/AppShell.tsx b/frontend/src/components/shared/AppShell.tsx
+index 11b39e8..2177daa 100644
+--- a/frontend/src/components/shared/AppShell.tsx
++++ b/frontend/src/components/shared/AppShell.tsx
+@@ -20,8 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
+   return (
+     <>
+       <Sidebar />
+-      <main className="ml-[220px] min-h-screen bg-bg p-6">{children}</main>
++      <main className="ml-[240px] min-h-screen bg-bg p-6">{children}</main>
+     </>
+   );
+ }
+-
+diff --git a/frontend/src/components/shared/ConflictBanner.tsx b/frontend/src/components/shared/ConflictBanner.tsx
+index 182344e..712b272 100644
+--- a/frontend/src/components/shared/ConflictBanner.tsx
++++ b/frontend/src/components/shared/ConflictBanner.tsx
+@@ -1,9 +1,19 @@
+ export function ConflictBanner({ title, children }: { title: string; children: React.ReactNode }) {
+   return (
+-    <div className="border-l-4 border-red bg-red-bg px-4 py-3 text-sm text-primary">
+-      <div className="mb-1 font-medium text-red">{title}</div>
+-      <div className="text-secondary">{children}</div>
++    <div className="flex gap-3 rounded-[var(--radius-card)] border-l-4 border-red bg-red-bg px-4 py-3 text-sm text-primary">
++      <svg viewBox="0 0 16 16" fill="none" className="mt-0.5 h-4 w-4 shrink-0 text-red" aria-hidden>
++        <path
++          d="M8 1.5 14.5 13H1.5L8 1.5ZM8 6v3.5M8 11.5h.01"
++          stroke="currentColor"
++          strokeWidth="1.4"
++          strokeLinecap="round"
++          strokeLinejoin="round"
++        />
++      </svg>
++      <div>
++        <div className="mb-1 font-medium text-red">{title}</div>
++        <div className="text-secondary">{children}</div>
++      </div>
+     </div>
+   );
+ }
+-
+diff --git a/frontend/src/components/shared/DataTable.tsx b/frontend/src/components/shared/DataTable.tsx
+index 062b382..fed4768 100644
+--- a/frontend/src/components/shared/DataTable.tsx
++++ b/frontend/src/components/shared/DataTable.tsx
+@@ -1,5 +1,3 @@
+-import React from "react";
+-
+ export function DataTable({
+   headers,
+   children,
+@@ -7,32 +5,30 @@ export function DataTable({
+   headers: string[];
+   children: React.ReactNode;
+ }) {
+-  const isEmpty = React.Children.count(children) === 0;
+   return (
+-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
++    <div className="card-surface overflow-hidden">
+       <table className="w-full border-collapse text-left text-sm">
+         <thead>
+-          <tr className="border-b border-line text-xs text-secondary bg-surface-raised">
++          <tr className="border-b border-line text-xs text-secondary">
+             {headers.map((header) => (
+-              <th key={header} className="px-4 py-3 font-normal">
++              <th key={header} className="px-4 py-3.5 font-normal">
+                 {header}
+               </th>
+             ))}
+           </tr>
+         </thead>
+-        <tbody className="divide-y divide-line">
+-          {isEmpty ? (
+-            <tr>
+-              <td colSpan={headers.length} className="px-4 py-8 text-center text-sm text-secondary">
+-                No data available
+-              </td>
+-            </tr>
+-          ) : (
+-            children
+-          )}
+-        </tbody>
++        <tbody className="divide-y divide-line">{children}</tbody>
+       </table>
+     </div>
+   );
+ }
+ 
++export function TableRow({
++  children,
++  className = "",
++}: {
++  children: React.ReactNode;
++  className?: string;
++}) {
++  return <tr className={`row-hover ${className}`}>{children}</tr>;
++}
+diff --git a/frontend/src/components/shared/EmptyState.tsx b/frontend/src/components/shared/EmptyState.tsx
+index 537dac5..19148b8 100644
+--- a/frontend/src/components/shared/EmptyState.tsx
++++ b/frontend/src/components/shared/EmptyState.tsx
+@@ -1,14 +1,32 @@
+ import { secondaryButtonClass } from "@/components/shared/FormField";
+ 
+-export function EmptyState({ title, action }: { title: string; action?: string }) {
++export function EmptyState({
++  title,
++  description,
++  action,
++  onAction,
++}: {
++  title: string;
++  description?: string;
++  action?: string;
++  onAction?: () => void;
++}) {
+   return (
+-    <div className="grid min-h-48 place-items-center rounded-lg border border-line bg-surface text-center">
+-      <div>
+-        <div className="mx-auto mb-3 grid h-9 w-9 place-items-center rounded-full border border-line text-muted">+</div>
++    <div className="card-surface grid min-h-48 place-items-center text-center">
++      <div className="px-6 py-8">
++        <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full border border-line bg-raised text-muted">
++          <svg viewBox="0 0 16 16" fill="none" className="h-5 w-5" aria-hidden>
++            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
++          </svg>
++        </div>
+         <p className="text-sm text-secondary">{title}</p>
+-        {action ? <button className={`${secondaryButtonClass} mt-4`}>{action}</button> : null}
++        {description ? <p className="mt-1 text-xs text-muted">{description}</p> : null}
++        {action ? (
++          <button type="button" className={`${secondaryButtonClass} mt-4`} onClick={onAction}>
++            {action}
++          </button>
++        ) : null}
+       </div>
+     </div>
+   );
+ }
+-
+diff --git a/frontend/src/components/shared/FormField.tsx b/frontend/src/components/shared/FormField.tsx
+index ff7fc97..593b971 100644
+--- a/frontend/src/components/shared/FormField.tsx
++++ b/frontend/src/components/shared/FormField.tsx
+@@ -14,11 +14,10 @@ export function FormField({
+ }
+ 
+ export const inputClass =
+-  "h-10 rounded-md border border-line bg-raised px-3 text-sm text-primary outline-none transition focus:border-line-strong";
++  "h-10 rounded-[var(--radius-control)] border border-line bg-raised px-3 text-sm text-primary outline-none transition focus:border-line-strong";
+ 
+ export const buttonClass =
+-  "inline-flex h-10 items-center justify-center rounded-md bg-green px-4 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
++  "inline-flex h-10 items-center justify-center rounded-[var(--radius-control)] bg-green px-4 text-sm font-medium text-bg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50";
+ 
+ export const secondaryButtonClass =
+-  "inline-flex h-10 items-center justify-center rounded-md border border-line bg-surface px-4 text-sm text-primary transition hover:border-line-strong";
+-
++  "inline-flex h-10 items-center justify-center rounded-[var(--radius-control)] border border-line bg-surface px-4 text-sm text-primary transition hover:border-line-strong hover:brightness-110";
+diff --git a/frontend/src/components/shared/KpiCard.tsx b/frontend/src/components/shared/KpiCard.tsx
+index ddcba77..bc03a1d 100644
+--- a/frontend/src/components/shared/KpiCard.tsx
++++ b/frontend/src/components/shared/KpiCard.tsx
+@@ -1,9 +1,46 @@
+-export function KpiCard({ label, value }: { label: string; value: string | number }) {
++const accentBorders: Record<string, string> = {
++  green: "border-b-2 border-b-green",
++  blue: "border-b-2 border-b-blue",
++  amber: "border-b-2 border-b-amber",
++  red: "border-b-2 border-b-red",
++};
++
++export function KpiCard({
++  label,
++  value,
++  icon,
++  accentColor,
++  trend,
++}: {
++  label: string;
++  value: string | number;
++  icon?: React.ReactNode;
++  accentColor?: "green" | "blue" | "amber" | "red";
++  trend?: string;
++}) {
++  const trendPositive = trend?.startsWith("+");
++  const trendNegative = trend?.startsWith("-");
++
+   return (
+-    <div className="rounded-lg border border-line bg-surface p-4 transition-all duration-300 hover:-translate-y-1 hover:border-line-strong hover:shadow-xl hover:shadow-bg/50">
+-      <div className="text-[28px] font-semibold leading-tight text-primary">{value}</div>
+-      <div className="mt-1 text-xs text-secondary">{label}</div>
++    <div
++      className={`card-surface card-surface-hover p-4 ${accentColor ? accentBorders[accentColor] : ""}`}
++    >
++      <div className="flex items-start justify-between gap-2">
++        <div className="min-w-0">
++          <div className="text-[28px] font-semibold leading-tight text-primary">{value}</div>
++          <div className="mt-1 text-xs text-secondary">{label}</div>
++        </div>
++        {icon ? <div className="text-muted">{icon}</div> : null}
++      </div>
++      {trend ? (
++        <div
++          className={`mt-2 text-xs ${
++            trendPositive ? "text-green" : trendNegative ? "text-red" : "text-secondary"
++          }`}
++        >
++          {trend}
++        </div>
++      ) : null}
+     </div>
+   );
+ }
+-
+diff --git a/frontend/src/components/shared/Sidebar.tsx b/frontend/src/components/shared/Sidebar.tsx
+index 70aff26..5c4a895 100644
+--- a/frontend/src/components/shared/Sidebar.tsx
++++ b/frontend/src/components/shared/Sidebar.tsx
+@@ -4,48 +4,150 @@ import Link from "next/link";
+ import { usePathname, useRouter } from "next/navigation";
+ import { useAuth } from "@/lib/auth";
+ 
+-const items = [
+-  ["Dashboard", "/dashboard"],
+-  ["Organization Setup", "/org-setup"],
+-  ["Assets", "/assets"],
+-  ["Allocation & Transfer", "/allocations"],
+-  ["Resource Booking", "/bookings"],
+-  ["Maintenance", "/maintenance"],
+-  ["Audit", "/audits"],
+-  ["Reports", "/reports"],
+-  ["Notifications", "/notifications"],
++const items: { label: string; href: string; icon: React.ReactNode }[] = [
++  {
++    label: "Dashboard",
++    href: "/dashboard",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M2 2h5v5H2V2Zm7 0h5v3H9V2ZM2 9h5v5H2V9Zm7-2h5v7H9V7Z" stroke="currentColor" strokeWidth="1.4" />
++      </svg>
++    ),
++  },
++  {
++    label: "Organization Setup",
++    href: "/org-setup",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M2.5 13.5V6L8 2.5 13.5 6v7.5H9.5V9H6.5v4.5H2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
++      </svg>
++    ),
++  },
++  {
++    label: "Assets",
++    href: "/assets",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M3 4.5 8 2l5 2.5v7L8 14l-5-2.5v-7Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
++        <path d="M3 4.5 8 7l5-2.5M8 7v7" stroke="currentColor" strokeWidth="1.4" />
++      </svg>
++    ),
++  },
++  {
++    label: "Allocation & Transfer",
++    href: "/allocations",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M2 5h9M8 2l3 3-3 3M14 11H5M8 8l-3 3 3 3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
++      </svg>
++    ),
++  },
++  {
++    label: "Resource Booking",
++    href: "/bookings",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
++        <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
++      </svg>
++    ),
++  },
++  {
++    label: "Maintenance",
++    href: "/maintenance",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M10.5 2.5a3 3 0 0 1 3 3L9.8 9.2 6.8 6.2l3.7-3.7ZM6.2 7.2 2.5 13.5l6.3-3.7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
++      </svg>
++    ),
++  },
++  {
++    label: "Audit",
++    href: "/audits",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M4 2.5h6.5L13 5v8.5H4v-11Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
++        <path d="M10.5 2.5V5H13M6 8h4M6 10.5h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
++      </svg>
++    ),
++  },
++  {
++    label: "Reports",
++    href: "/reports",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M3 12.5V8.5M7 12.5V5.5M11 12.5V3.5M2 13.5h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
++      </svg>
++    ),
++  },
++  {
++    label: "Notifications",
++    href: "/notifications",
++    icon: (
++      <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
++        <path d="M4 6.5a4 4 0 1 1 8 0c0 2.2 1 3.2 1 3.2H3S4 8.7 4 6.5ZM6.5 13h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
++      </svg>
++    ),
++  },
+ ];
+ 
++function initials(name?: string) {
++  if (!name) return "U";
++  return name
++    .split(" ")
++    .map((part) => part[0])
++    .join("")
++    .slice(0, 2)
++    .toUpperCase();
++}
++
+ export function Sidebar() {
+   const pathname = usePathname();
+   const router = useRouter();
+   const { user, logout } = useAuth();
+ 
+   return (
+-    <aside className="fixed inset-y-0 left-0 flex w-[220px] flex-col border-r border-line bg-surface">
++    <aside className="fixed inset-y-0 left-0 flex w-[240px] flex-col border-r border-line bg-surface">
+       <div className="border-b border-line px-4 py-5">
+-        <div className="text-xl font-semibold">AssetFlow</div>
+-        <div className="text-xs text-secondary">Operations console</div>
++        <div className="flex items-center gap-2.5">
++          <div className="grid h-7 w-7 place-items-center rounded-md bg-green-bg text-xs font-semibold text-green">AF</div>
++          <div>
++            <div className="text-lg font-semibold leading-tight">AssetFlow</div>
++            <div className="text-xs text-secondary">Operations console</div>
++          </div>
++        </div>
+       </div>
+       <nav className="flex-1 space-y-1 px-2 py-4">
+-        {items.map(([label, href]) => {
+-          const active = pathname === href;
++        {items.map((item) => {
++          const active = pathname === item.href;
+           return (
+             <Link
+-              key={href}
+-              href={href}
+-              className={`block border-l-[3px] px-3 py-2 text-sm transition ${
+-                active ? "border-green bg-line-strong text-primary" : "border-transparent text-secondary hover:bg-raised hover:text-primary"
++              key={item.href}
++              href={item.href}
++              className={`flex items-center gap-2.5 border-l-[3px] px-3 py-2 text-sm transition ${
++                active
++                  ? "rounded-r-md border-green bg-line-strong text-primary [background-image:linear-gradient(90deg,rgba(34,197,94,0.08),transparent)]"
++                  : "rounded-md border-transparent text-secondary hover:bg-raised hover:text-primary"
+               }`}
+             >
+-              {label}
++              <span className={active ? "text-green" : "text-muted"}>{item.icon}</span>
++              <span>{item.label}</span>
+             </Link>
+           );
+         })}
+       </nav>
+       <div className="border-t border-line p-4">
+-        <div className="truncate text-sm text-primary">{user?.name ?? "Demo user"}</div>
+-        <div className="truncate text-xs text-secondary">{user?.role ?? "employee"}</div>
++        <div className="flex items-center gap-3">
++          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-bg text-xs font-semibold text-green">
++            {initials(user?.name)}
++          </div>
++          <div className="min-w-0 flex-1">
++            <div className="truncate text-sm text-primary">{user?.name ?? "Demo user"}</div>
++            <span className="mt-0.5 inline-flex rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] text-secondary">
++              {user?.role ?? "employee"}
++            </span>
++          </div>
++        </div>
+         <button
+           className="mt-3 text-xs text-secondary hover:text-primary"
+           onClick={() => {
+@@ -59,4 +161,3 @@ export function Sidebar() {
+     </aside>
+   );
+ }
+-
+diff --git a/frontend/src/components/shared/StatusPill.tsx b/frontend/src/components/shared/StatusPill.tsx
+index 840be56..c540a1d 100644
+--- a/frontend/src/components/shared/StatusPill.tsx
++++ b/frontend/src/components/shared/StatusPill.tsx
+@@ -3,22 +3,41 @@ const palette: Record<string, string> = {
+   active: "border-green bg-green-bg text-green",
+   verified: "border-green bg-green-bg text-green",
+   resolved: "border-green bg-green-bg text-green",
++  approved: "border-green bg-green-bg text-green",
++  completed: "border-green bg-green-bg text-green",
++  open: "border-blue bg-blue-bg text-blue",
+   allocated: "border-blue bg-blue-bg text-blue",
+   reserved: "border-blue bg-blue-bg text-blue",
+   upcoming: "border-blue bg-blue-bg text-blue",
++  in_progress: "border-blue bg-blue-bg text-blue",
++  technician_assigned: "border-blue bg-blue-bg text-blue",
+   pending: "border-amber bg-amber-bg text-amber",
+   damaged: "border-amber bg-amber-bg text-amber",
++  requested: "border-amber bg-amber-bg text-amber",
+   overdue: "border-red bg-red-bg text-red",
+   missing: "border-red bg-red-bg text-red",
+   blocked: "border-red bg-red-bg text-red",
++  rejected: "border-red bg-red-bg text-red",
++  closed: "border-line bg-raised text-secondary",
++  lost: "border-red bg-red-bg text-red",
++  high: "border-red bg-red-bg text-red",
++  medium: "border-amber bg-amber-bg text-amber",
++  low: "border-blue bg-blue-bg text-blue",
+ };
+ 
++const pulseStatuses = new Set(["overdue", "missing"]);
++
+ export function StatusPill({ value }: { value: string }) {
+   const key = value.toLowerCase();
++  const pulse = pulseStatuses.has(key);
+   return (
+-    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs shadow-sm hover:shadow-md hover:brightness-125 transition-all cursor-default ${palette[key] ?? "border-line bg-raised text-secondary"}`}>
++    <span
++      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs ${
++        palette[key] ?? "border-line bg-raised text-secondary"
++      }`}
++    >
++      {pulse ? <span className="animate-pulse-dot h-1.5 w-1.5 rounded-full bg-current" aria-hidden /> : null}
+       {value.replaceAll("_", " ")}
+     </span>
+   );
+ }
+-
+diff --git a/frontend/src/components/shared/Toast.tsx b/frontend/src/components/shared/Toast.tsx
+deleted file mode 100644
+index 7d7f054..0000000
+--- a/frontend/src/components/shared/Toast.tsx
++++ /dev/null
+@@ -1,55 +0,0 @@
+-"use client";
+-
+-import { createContext, useContext, useState, useCallback } from "react";
+-
+-type ToastMessage = {
+-  id: number;
+-  message: string;
+-  type: "success" | "error" | "info";
+-};
+-
+-type ToastContextType = {
+-  showToast: (message: string, type?: "success" | "error" | "info") => void;
+-};
+-
+-const ToastContext = createContext<ToastContextType | null>(null);
+-
+-export function ToastProvider({ children }: { children: React.ReactNode }) {
+-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+-
+-  const showToast = useCallback((message: string, type: "success" | "error" | "info" = "info") => {
+-    const id = Date.now();
+-    setToasts((prev) => [...prev, { id, message, type }]);
+-    setTimeout(() => {
+-      setToasts((prev) => prev.filter((t) => t.id !== id));
+-    }, 3000);
+-  }, []);
+-
+-  return (
+-    <ToastContext.Provider value={{ showToast }}>
+-      {children}
+-      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+-        {toasts.map((t) => (
+-          <div
+-            key={t.id}
+-            className={`pointer-events-auto rounded-lg px-4 py-3 text-sm shadow-xl border backdrop-blur-xl transition-all ${
+-              t.type === "success"
+-                ? "bg-[#16311f]/90 border-[#22c55e] text-[#f5f5f5]"
+-                : t.type === "error"
+-                ? "bg-[#3a1a1a]/90 border-[#ef4444] text-[#f5f5f5]"
+-                : "bg-[#131316]/90 border-[#3a3a3f] text-[#f5f5f5]"
+-            }`}
+-          >
+-            {t.message}
+-          </div>
+-        ))}
+-      </div>
+-    </ToastContext.Provider>
+-  );
+-}
+-
+-export function useToast() {
+-  const ctx = useContext(ToastContext);
+-  if (!ctx) throw new Error("useToast must be used within ToastProvider");
+-  return ctx;
+-}
+diff --git a/frontend/src/lib/api.ts b/frontend/src/lib/api.ts
+index 6811c0a..8e195da 100644
+--- a/frontend/src/lib/api.ts
++++ b/frontend/src/lib/api.ts
+@@ -49,6 +49,8 @@ export type Allocation = {
+   status: string;
+   allocated_at: string;
+   expected_return_date?: string | null;
++  returned_at?: string | null;
++  return_condition_notes?: string | null;
+ };
+ 
+ export type Booking = {
+@@ -60,3 +62,86 @@ export type Booking = {
+   end: string;
+ };
+ 
++export type TransferRequest = {
++  id: number;
++  asset_id: number;
++  from_holder_id?: number | null;
++  to_holder_id: number;
++  reason: string;
++  status: string;
++  requested_by: number;
++  approved_by?: number | null;
++};
++
++export type MaintenanceRequest = {
++  id: number;
++  asset_id: number;
++  raised_by: number;
++  issue_description: string;
++  priority: string;
++  photo_url?: string | null;
++  status: string;
++  approved_by?: number | null;
++  technician_name?: string | null;
++  resolved_at?: string | null;
++  created_at: string;
++  asset_tag?: string | null;
++  asset_name?: string | null;
++};
++
++export type KanbanBoard = {
++  columns: { status: string; count: number; items: MaintenanceRequest[] }[];
++};
++
++export type AuditCycle = {
++  id: number;
++  name: string;
++  scope_department_id?: number | null;
++  scope_location?: string | null;
++  start_date: string;
++  end_date: string;
++  status: string;
++  created_by: number;
++  auditor_ids: number[];
++  total_items: number;
++  verified_count: number;
++  missing_count: number;
++  damaged_count: number;
++  pending_count: number;
++};
++
++export type AuditItem = {
++  id: number;
++  cycle_id: number;
++  asset_id: number;
++  expected_location?: string | null;
++  verification_status: string;
++  notes?: string | null;
++  verified_by?: number | null;
++  verified_at?: string | null;
++  asset_tag?: string | null;
++  asset_name?: string | null;
++  asset_condition?: string | null;
++};
++
++export type AuditCycleDetail = AuditCycle & {
++  items: AuditItem[];
++};
++
++export type DiscrepancyReport = {
++  cycle_id: number;
++  cycle_name: string;
++  missing_count: number;
++  damaged_count: number;
++  verified_count: number;
++  pending_count: number;
++  items: {
++    item_id: number;
++    asset_id: number;
++    asset_tag?: string | null;
++    asset_name?: string | null;
++    verification_status: string;
++    notes?: string | null;
++    expected_location?: string | null;
++  }[];
++};

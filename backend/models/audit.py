@@ -21,6 +21,13 @@ class AuditCycle(Base):
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
 
+class AuditCycleAuditor(Base):
+    __tablename__ = "audit_cycle_auditors"
+
+    cycle_id: Mapped[int] = mapped_column(ForeignKey("audit_cycles.id", ondelete="CASCADE"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+
+
 class AuditItem(Base):
     __tablename__ = "audit_items"
 
