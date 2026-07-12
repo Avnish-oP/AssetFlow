@@ -59,6 +59,10 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 | 7 | Maintenance → resolve → Available | PASS | On an **available** asset |
 | 8 | Audit Missing→Lost + close + report | PASS | Needed `audit_cycle_auditors` table (added to live DB) |
 | 9 | Reports + Notifications APIs | PASS | |
+- [x] App pages on live API (no mock datasets; assets mock fallback removed)
+- [x] `backend/seed.py` demo dataset (Priya Shah / AF-0114 / Room B2)
+- [x] Role-based UI gating for all 4 roles (`lib/roles.ts` + Sidebar/page actions)
+- [ ] Demo script (README §9) rehearsed end-to-end — **Phase 5** (Phase 4 smoke done)
 
 ---
 
@@ -69,6 +73,9 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 3. Ensure fresh DBs get `audit_cycle_auditors` (already in `init.sql`; existing volumes need one-time `CREATE TABLE` or volume wipe + re-seed)
 4. Optional: drop OpenAPI TS-client checklist item (hand-written `api.ts` is fine)
 5. Full UI demo rehearsal
+1. Full README §9 E2E rehearsal (Phase 5)
+2. Optional: generate OpenAPI TS client (or drop the checklist item and keep `api.ts`)
+3. Optional: MinIO photo upload / Redis cache
 
 ---
 
@@ -78,6 +85,10 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 
 - 2026-07-12 — re-audit vs README §9: API smoke mostly PASS after restart; live DB was missing `audit_cycle_auditors` (init.sql has it, volume was older). Role UI gating still open.
 - 2026-07-12 — merged origin/main: Phase 3 reports/notifications stack; toast + org-setup conflict toasts.
+- 2026-07-12 — merged origin/main: kept local Phase 3 reports/notifications stack (`report_service`, schemas, recharts, activity log); took remote toast + org-setup conflict toasts; cleaned AGENT ownership table.
+- 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; `maintenance→allocated` transition allowed; transfer Complete CTA clarified. Full §9 E2E deferred to Phase 5. MinIO/OpenAPI still deferred.
+- 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates (skipped Redis client); APScheduler overdue scanner every 60s; notifications poll every 25s; recharts on Reports; CSV export client-side.
+- 2026-07-12 — cleaned AGENT.md: dropped stale `apps/api`/`apps/web` ownership table; Phase 2–3 marked done.
 - 2026-07-12 — `backend/seed.py` is demo data source; `init.sql` is schema-only.
 - 2026-07-12 — repo layout is `backend/` + `frontend/` (not README's `apps/*` paths).
 - 2026-07-12 — docker-compose = postgres/redis/minio only; FastAPI runs locally via uvicorn.

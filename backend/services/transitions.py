@@ -6,7 +6,7 @@ TRANSITIONS = {
         "available": {"allocated", "reserved", "maintenance", "lost", "retired"},
         "allocated": {"available", "maintenance", "lost"},
         "reserved": {"available", "allocated"},
-        "maintenance": {"available", "retired"},
+        "maintenance": {"available", "allocated", "retired"},
         "lost": {"available", "disposed"},
         "retired": {"disposed"},
         "disposed": set(),

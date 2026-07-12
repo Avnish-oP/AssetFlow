@@ -66,7 +66,12 @@ export default function BookingsPage() {
         if (items[0]) setResourceId(items[0].id);
       })
       .catch(() => setError("Could not load bookable resources."));
-    apiFetch<Booking[]>("/bookings").then(setBookings).catch(() => setBookings([]));
+    apiFetch<Booking[]>("/bookings")
+      .then(setBookings)
+      .catch(() => {
+        setBookings([]);
+        setError((prev) => prev || "Could not load bookings.");
+      });
   }, []);
 
   async function loadDaySlots(nextResourceId: number, nextDate: string) {

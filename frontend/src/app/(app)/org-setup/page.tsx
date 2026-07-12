@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type User } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 type Department = { id: number; name: string; status: string; head_id?: number | null; parent_department_id?: number | null };
 type Category = { id: number; name: string; custom_fields: Record<string, unknown> };
 
 export default function OrgSetupPage() {
+  const { user } = useAuth();
+  const canManage = can(user?.role, "org_setup");
+  const canPromote = can(user?.role, "org_promote");
   const [tab, setTab] = useState("departments");
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -35,8 +41,20 @@ export default function OrgSetupPage() {
   }
 
   useEffect(() => {
-    void refresh();
-  }, []);
+    if (canManage) void refresh();
+  }, [canManage]);
+
+  if (!canManage) {
+    return (
+      <div className="grid gap-4">
+        <h1 className="text-xl font-semibold">Organization setup</h1>
+        <EmptyState
+          title="Insufficient permissions"
+          description="Organization setup is limited to admin and asset managers."
+        />
+      </div>
+    );
+  }
 
   async function createDepartment(form: FormData) {
     const name = form.get("name") as string;
@@ -230,12 +248,16 @@ export default function OrgSetupPage() {
                   <StatusPill value={employee.status} />
                 </td>
                 <td className="space-x-2 px-4 py-3">
-                  <button className={secondaryButtonClass} onClick={() => void promote(employee, "dept_head")}>
-                    Dept head
-                  </button>
-                  <button className={secondaryButtonClass} onClick={() => void promote(employee, "asset_manager")}>
-                    Asset manager
-                  </button>
+                  {canPromote ? (
+                    <>
+                      <button className={secondaryButtonClass} onClick={() => void promote(employee, "dept_head")}>
+                        Dept head
+                      </button>
+                      <button className={secondaryButtonClass} onClick={() => void promote(employee, "asset_manager")}>
+                        Asset manager
+                      </button>
+                    </>
+                  ) : null}
                   <button className={secondaryButtonClass} onClick={() => void toggleEmployeeStatus(employee)}>
                     {employee.status === "active" ? "Deactivate" : "Activate"}
                   </button>

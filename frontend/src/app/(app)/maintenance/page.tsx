@@ -19,6 +19,8 @@ import {
   type KanbanBoard,
   type MaintenanceRequest,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 const COLUMN_ORDER = ["pending", "approved", "technician_assigned", "in_progress", "resolved"] as const;
 const COLUMN_LABELS: Record<string, string> = {
@@ -36,8 +38,11 @@ const COLUMN_DOT: Record<string, string> = {
   resolved: "bg-green",
 };
 
-function KanbanCard({ item, dimmed }: { item: MaintenanceRequest; dimmed?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: String(item.id) });
+function KanbanCard({ item, dimmed, draggable }: { item: MaintenanceRequest; dimmed?: boolean; draggable: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: String(item.id),
+    disabled: !draggable,
+  });
   const style = transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
     : undefined;
@@ -46,9 +51,9 @@ function KanbanCard({ item, dimmed }: { item: MaintenanceRequest; dimmed?: boole
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
-      className={`card-surface card-surface-hover cursor-grab p-3 active:cursor-grabbing ${
+      {...(draggable ? listeners : {})}
+      {...(draggable ? attributes : {})}
+      className={`card-surface card-surface-hover p-3 ${draggable ? "cursor-grab active:cursor-grabbing" : ""} ${
         dimmed ? "opacity-60" : ""
       } ${isDragging ? "z-10 opacity-90 shadow-lg" : ""}`}
     >
@@ -68,11 +73,13 @@ function KanbanCard({ item, dimmed }: { item: MaintenanceRequest; dimmed?: boole
 function KanbanColumn({
   status,
   items,
+  draggable,
 }: {
   status: string;
   items: MaintenanceRequest[];
+  draggable: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
+  const { setNodeRef, isOver } = useDroppable({ id: status, disabled: !draggable });
   return (
     <div
       ref={setNodeRef}
@@ -89,7 +96,7 @@ function KanbanColumn({
       </div>
       <div className="flex flex-1 flex-col gap-2 p-2">
         {items.map((item) => (
-          <KanbanCard key={item.id} item={item} dimmed={status === "resolved"} />
+          <KanbanCard key={item.id} item={item} dimmed={status === "resolved"} draggable={draggable} />
         ))}
       </div>
     </div>
@@ -97,6 +104,9 @@ function KanbanColumn({
 }
 
 export default function MaintenancePage() {
+  const { user } = useAuth();
+  const canRaise = can(user?.role, "maintenance_raise");
+  const canAdvance = can(user?.role, "maintenance_advance");
   const [board, setBoard] = useState<KanbanBoard | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -136,6 +146,7 @@ export default function MaintenancePage() {
   }, [board, priorityFilter, search]);
 
   async function onDragEnd(event: DragEndEvent) {
+    if (!canAdvance) return;
     const requestId = Number(event.active.id);
     const targetStatus = event.over?.id ? String(event.over.id) : null;
     if (!targetStatus || !COLUMN_ORDER.includes(targetStatus as (typeof COLUMN_ORDER)[number])) return;
@@ -181,12 +192,19 @@ export default function MaintenancePage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">Maintenance</h1>
-          <p className="text-sm text-secondary">Drag cards across the workflow. Asset status flips automatically.</p>
+          <p className="text-sm text-secondary">
+            Raising a request flips the asset to maintenance. Drag cards one column at a time through the workflow to
+            resolve.
+          </p>
         </div>
-        <button className={buttonClass} type="button" onClick={() => setShowForm(true)}>
+        <button className={buttonClass} type="button" onClick={() => setShowForm(true)} disabled={!canRaise}>
           Raise request
         </button>
       </header>
+
+      {!canAdvance ? (
+        <p className="text-xs text-secondary">View-only kanban — only admin / asset managers can advance status.</p>
+      ) : null}
 
       <div className="flex flex-wrap gap-3">
         <input
@@ -262,7 +280,7 @@ export default function MaintenancePage() {
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
           <div className="grid gap-3 xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
             {columns.map((column) => (
-              <KanbanColumn key={column.status} status={column.status} items={column.items} />
+              <KanbanColumn key={column.status} status={column.status} items={column.items} draggable={canAdvance} />
             ))}
           </div>
         </DndContext>

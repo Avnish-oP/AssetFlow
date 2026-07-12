@@ -24,6 +24,8 @@ import {
   type RetirementReport,
   type UtilizationReport,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
   if (!rows.length) return;
@@ -50,6 +52,8 @@ function downloadCsv(filename: string, rows: Record<string, unknown>[]) {
 }
 
 export default function ReportsPage() {
+  const { user } = useAuth();
+  const allowed = can(user?.role, "reports");
   const [utilization, setUtilization] = useState<UtilizationReport | null>(null);
   const [usage, setUsage] = useState<AssetUsageReport | null>(null);
   const [maintenance, setMaintenance] = useState<MaintenanceFrequencyReport | null>(null);
@@ -76,8 +80,20 @@ export default function ReportsPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (allowed) load();
+  }, [allowed, load]);
+
+  if (!allowed) {
+    return (
+      <div className="grid gap-4">
+        <h1 className="text-xl font-semibold">Reports & analytics</h1>
+        <EmptyState
+          title="Insufficient permissions"
+          description="Reports are available to admin, asset managers, and department heads."
+        />
+      </div>
+    );
+  }
 
   const chartData = utilization?.series ?? [];
   const lineData = (maintenance?.items ?? []).map((item) => ({
