@@ -83,10 +83,10 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto grid max-w-[1600px] gap-6 pt-14 lg:pt-0">
+      <header className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-line bg-surface-raised px-5 py-4 sm:px-6">
         <div>
-          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-secondary">
             {loading
               ? "Loading operational status…"
@@ -104,7 +104,7 @@ export default function DashboardPage() {
       </header>
 
       {canSeeKpis ? (
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((kpi) => (
           <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} accentColor={kpi.accentColor} />
         ))}
@@ -117,7 +117,7 @@ export default function DashboardPage() {
       )}
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <div>
+        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-medium">Unread notifications</h2>
             <a href="/notifications" className="text-xs text-secondary hover:text-primary">
@@ -140,7 +140,7 @@ export default function DashboardPage() {
             </DataTable>
           )}
         </div>
-        <div>
+        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
           <h2 className="mb-3 text-base font-medium">Upcoming returns</h2>
           <DataTable headers={["Asset", "Holder", "Due", "Status"]}>
             {returns.length === 0 ? (
