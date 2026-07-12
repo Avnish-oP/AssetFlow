@@ -43,12 +43,16 @@ function KanbanCard({
   item,
   dimmed,
   draggable,
+  onApprove,
   onReject,
+  onAdvance,
 }: {
   item: MaintenanceRequest;
   dimmed?: boolean;
   draggable: boolean;
+  onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
+  onAdvance?: (id: number, nextStatus: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(item.id),
@@ -77,17 +81,63 @@ function KanbanCard({
         <span>{item.technician_name ? `Tech: ${item.technician_name}` : `Raised by #${item.raised_by}`}</span>
         <span>{new Date(item.created_at).toLocaleDateString()}</span>
       </div>
-      {item.status === "pending" && onReject ? (
+
+      {/* Action buttons — shown only to managers */}
+      {item.status === "pending" && (onApprove || onReject) ? (
+        <div className="mt-2 flex gap-2">
+          {onApprove ? (
+            <button
+              type="button"
+              className={`${buttonClass} flex-1 text-xs`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onApprove(item.id); }}
+            >
+              Approve
+            </button>
+          ) : null}
+          {onReject ? (
+            <button
+              type="button"
+              className={`${secondaryButtonClass} flex-1 text-xs`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onReject(item.id); }}
+            >
+              Reject
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {item.status === "approved" && onAdvance ? (
         <button
           type="button"
-          className={`${secondaryButtonClass} mt-2 w-full text-xs`}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onReject(item.id);
-          }}
+          className={`${buttonClass} mt-2 w-full text-xs`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "technician_assigned"); }}
         >
-          Reject
+          Assign Technician →
+        </button>
+      ) : null}
+
+      {item.status === "technician_assigned" && onAdvance ? (
+        <button
+          type="button"
+          className={`${buttonClass} mt-2 w-full text-xs`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "in_progress"); }}
+        >
+          Start Work →
+        </button>
+      ) : null}
+
+      {item.status === "in_progress" && onAdvance ? (
+        <button
+          type="button"
+          className={`${buttonClass} mt-2 w-full text-xs bg-green text-white`}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "resolved"); }}
+        >
+          Mark Resolved ✓
         </button>
       ) : null}
     </div>
@@ -98,12 +148,16 @@ function KanbanColumn({
   status,
   items,
   draggable,
+  onApprove,
   onReject,
+  onAdvance,
 }: {
   status: string;
   items: MaintenanceRequest[];
   draggable: boolean;
+  onApprove?: (id: number) => void;
   onReject?: (id: number) => void;
+  onAdvance?: (id: number, nextStatus: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status, disabled: !draggable });
   return (
@@ -127,7 +181,9 @@ function KanbanColumn({
             item={item}
             dimmed={status === "resolved"}
             draggable={draggable}
+            onApprove={status === "pending" ? onApprove : undefined}
             onReject={status === "pending" ? onReject : undefined}
+            onAdvance={["approved", "technician_assigned", "in_progress"].includes(status) ? onAdvance : undefined}
           />
         ))}
       </div>
@@ -201,6 +257,42 @@ export default function MaintenancePage() {
     } catch (err) {
       const detail = (err as { detail?: unknown })?.detail;
       setError(typeof detail === "string" ? detail : "Could not update status");
+    }
+  }
+
+  async function approveRequest(requestId: number) {
+    if (!canAdvance) return;
+    setError(null);
+    try {
+      await apiFetch(`/maintenance/${requestId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "approved" }),
+      });
+      await load();
+    } catch (err) {
+      const detail = (err as { detail?: unknown })?.detail;
+      setError(typeof detail === "string" ? detail : "Could not approve request");
+    }
+  }
+
+  async function advanceRequest(requestId: number, nextStatus: string) {
+    if (!canAdvance) return;
+    setError(null);
+    try {
+      const body: { status: string; technician_name?: string } = { status: nextStatus };
+      if (nextStatus === "technician_assigned") {
+        const current = columns.flatMap((c) => c.items).find((item) => item.id === requestId);
+        if (!current?.technician_name) {
+          const name = window.prompt("Assign technician name:", "On-call tech") ?? "";
+          if (!name.trim()) return;
+          body.technician_name = name.trim();
+        }
+      }
+      await apiFetch(`/maintenance/${requestId}/status`, { method: "PATCH", body: JSON.stringify(body) });
+      await load();
+    } catch (err) {
+      const detail = (err as { detail?: unknown })?.detail;
+      setError(typeof detail === "string" ? detail : "Could not advance request");
     }
   }
 
@@ -370,7 +462,9 @@ export default function MaintenancePage() {
                 status={column.status}
                 items={column.items}
                 draggable={canAdvance}
+                onApprove={canAdvance ? approveRequest : undefined}
                 onReject={canAdvance ? rejectRequest : undefined}
+                onAdvance={canAdvance ? advanceRequest : undefined}
               />
             ))}
           </div>

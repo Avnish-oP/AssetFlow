@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { useAuth } from "@/lib/auth";
 import { apiFetch, type AppNotification } from "@/lib/api";
 import { canSeeNav } from "@/lib/roles";
@@ -175,6 +176,10 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-line p-4">
+        <div className="mb-3">
+          <div className="mb-1.5 text-[11px] text-muted">Theme</div>
+          <ThemeSwitcher compact />
+        </div>
         <div className="flex items-center gap-3">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-bg text-xs font-semibold text-green">
             {initials(user?.name)}

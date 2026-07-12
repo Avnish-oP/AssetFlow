@@ -283,6 +283,7 @@ export type AppNotification = {
 export type ActivityLog = {
   id: number;
   actor_id?: number | null;
+  actor_name?: string | null;
   action: string;
   entity_type: string;
   entity_id?: number | null;
