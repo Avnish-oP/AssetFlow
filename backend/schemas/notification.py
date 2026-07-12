@@ -17,6 +17,7 @@ class NotificationResponse(OrmModel):
 class ActivityLogResponse(OrmModel):
     id: int
     actor_id: int | None = None
+    actor_name: str | None = None
     action: str
     entity_type: str
     entity_id: int | None = None
@@ -24,10 +25,11 @@ class ActivityLogResponse(OrmModel):
     created_at: datetime
 
     @classmethod
-    def from_row(cls, row) -> "ActivityLogResponse":
+    def from_row(cls, row, actor_name: str | None = None) -> "ActivityLogResponse":
         return cls(
             id=row.id,
             actor_id=row.actor_id,
+            actor_name=actor_name,
             action=row.action,
             entity_type=row.entity_type,
             entity_id=row.entity_id,

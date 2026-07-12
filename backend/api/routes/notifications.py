@@ -43,7 +43,15 @@ async def list_activity(
     rows = (
         await db.scalars(select(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(limit))
     ).all()
-    return [ActivityLogResponse.from_row(row) for row in rows]
+
+    # Resolve actor IDs → names in one batch query
+    actor_ids = {row.actor_id for row in rows if row.actor_id is not None}
+    name_map: dict[int, str] = {}
+    if actor_ids:
+        users = (await db.scalars(select(User).where(User.id.in_(actor_ids)))).all()
+        name_map = {u.id: u.name for u in users}
+
+    return [ActivityLogResponse.from_row(row, actor_name=name_map.get(row.actor_id)) for row in rows]
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationResponse)

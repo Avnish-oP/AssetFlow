@@ -314,26 +314,33 @@ export default function ReportsPage() {
 
       <section>
         <h2 className="mb-3 text-base font-medium">Due for retirement</h2>
-        <DataTable headers={["Asset", "Condition", "Acquired", "Reason"]}>
+        <DataTable headers={["Asset", "Condition", "Acquired", "Age", "Reason"]}>
           {(retirement?.items ?? []).length === 0 ? (
             <TableRow>
-              <td className="px-4 py-3 text-secondary" colSpan={4}>
+              <td className="px-4 py-3 text-secondary" colSpan={5}>
                 No retirement candidates.
               </td>
             </TableRow>
           ) : (
-            (retirement?.items ?? []).map((item) => (
-              <TableRow key={item.asset_id}>
-                <td className="px-4 py-3">
-                  {item.tag} <span className="text-secondary">{item.name}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <StatusPill value={item.condition} />
-                </td>
-                <td className="px-4 py-3 text-secondary">{item.acquisition_date ?? "—"}</td>
-                <td className="px-4 py-3 text-secondary">{item.reason}</td>
-              </TableRow>
-            ))
+            (retirement?.items ?? []).map((item) => {
+              const ageDays = item.acquisition_date
+                ? Math.floor((Date.now() - new Date(item.acquisition_date).getTime()) / 86_400_000)
+                : null;
+              const ageLabel = ageDays != null ? (ageDays >= 365 ? `${Math.floor(ageDays / 365)} yr` : `${ageDays} d`) : "—";
+              return (
+                <TableRow key={item.asset_id}>
+                  <td className="px-4 py-3">
+                    {item.tag} <span className="text-secondary">{item.name}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusPill value={item.condition} />
+                  </td>
+                  <td className="px-4 py-3 text-secondary">{item.acquisition_date ?? "—"}</td>
+                  <td className="px-4 py-3 font-medium text-amber">{ageLabel}</td>
+                  <td className="px-4 py-3 text-secondary">{item.reason}</td>
+                </TableRow>
+              );
+            })
           )}
         </DataTable>
       </section>
