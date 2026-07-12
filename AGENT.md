@@ -21,26 +21,26 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 **Phase 1 — Core CRUD + conflict rules**
 - [x] Auth: signup (employee only), login, JWT, forgot-password stub
 - [x] Departments / Categories / Employees CRUD
-- [x] Admin promote → dept head / asset manager
+- [x] Admin promote → dept head / asset manager (self-elevation blocked)
 - [x] Assets: register + auto tag, search/filter, directory
 - [x] Allocation conflict (unique partial index + 409 + UI)
 - [x] Booking overlap (GIST exclude + 409 + UI)
 
 **Phase 2 — Workflows**
-- [x] Transfer: requested → approved → complete (re-allocates on complete)
+- [x] Transfer: requested → approved → complete (re-allocates on **complete**)
 - [x] Return flow: condition notes → asset Available
-- [x] Maintenance kanban + asset status auto-flip (on **approve**)
-- [x] Audit cycle: verify / missing → discrepancy; **Lost on close**
+- [x] Maintenance kanban + asset status auto-flip (approve → maintenance, resolve → available)
+- [x] Audit cycle: assign auditors, verify / missing → discrepancy; **Lost on close**; report
 
 **Phase 3 — Reports, notifications, dashboard**
-- [x] Dashboard KPI cards live
+- [x] Dashboard /reports/summary KPIs live
 - [x] Overdue scanner (APScheduler)
-- [x] Notifications feed + polling
-- [x] Reports: utilization, most-used/idle, maintenance frequency, due-for-retirement, export
+- [x] Notifications feed + polling (also created on allocate/transfer/maintenance/audit)
+- [x] Reports endpoints live (utilization, usage, maintenance frequency, retirement)
 
 **Phase 4 — Integration & demo**
 - [x] App pages on live API (no mock datasets; assets mock fallback removed)
-- [x] `backend/seed.py` demo dataset (Priya Shah / AF-0114 / Room B2)
+- [x] `backend/seed.py` demo dataset (`*@assetflow.dev` / `password`)
 - [x] Role-based UI gating for all 4 roles (`lib/roles.ts` + Sidebar/page actions)
 - [x] Demo script (README §9) rehearsed end-to-end — **Phase 5**
 
@@ -51,6 +51,22 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 - [x] UI polish: dashboard quick actions, org parent/head + category fields, asset register fields, booking cancel, maintenance reject
 - [x] Full §9 API E2E + employee Reports/Audits 403 spot-check
 - [x] PS compliance matrix below
+
+---
+
+## README §9 demo workflow (API smoke 2026-07-12)
+
+| # | Step | API | Notes |
+|---|---|---|---|
+| 1 | Admin promote + no self-elevation | PASS | Use `admin@assetflow.dev` |
+| 2 | Register asset → Available + auto tag | PASS | |
+| 3 | Allocate AF-0114 → Priya | PASS | |
+| 4 | Re-allocate blocked + holder | PASS | 409 + Priya Shah (Engineering) |
+| 5 | Transfer approve → complete | PASS | Re-alloc happens on **Complete** |
+| 6 | Booking 9–10 then 9:30–10:30 reject | PASS | GIST-enforced |
+| 7 | Maintenance → resolve → Available | PASS | On an **available** asset |
+| 8 | Audit Missing→Lost + close + report | PASS | Needed `audit_cycle_auditors` table (added to live DB) |
+| 9 | Reports + Notifications APIs | PASS | |
 
 ---
 
@@ -79,6 +95,8 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 1. Optional: MinIO photo upload / Redis cache
 2. Optional: generate OpenAPI TS client (or keep `api.ts`)
 3. Optional: booking heatmap, dept allocation report, employee-initiated return API
+4. Existing DB volumes: ensure `audit_cycle_auditors` exists (`init.sql` has it; older volumes need one-time `CREATE TABLE` or wipe + re-seed)
+5. Optional: prefill login with `admin@assetflow.dev` for cold demos
 
 ---
 
@@ -87,6 +105,8 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 *(append-only, newest on top)*
 
 - 2026-07-12 — Phase 5: maintenance asset flip on approve; audit Lost on close; README §9 step 5 Complete wording; §9 E2E rehearsed. Employee return still manager-gated (allocations router roles). Stretch (MinIO/heatmap/OpenAPI) deferred.
+- 2026-07-12 — re-audit vs README §9: API smoke mostly PASS after restart; live DB was missing `audit_cycle_auditors` (init.sql has it, volume was older).
+- 2026-07-12 — merged origin/main: Phase 3 reports/notifications stack; toast + org-setup conflict toasts.
 - 2026-07-12 — merged origin/main: kept local Phase 3 reports/notifications stack (`report_service`, schemas, recharts, activity log); took remote toast + org-setup conflict toasts; cleaned AGENT ownership table.
 - 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; `maintenance→allocated` transition allowed; transfer Complete CTA clarified. Full §9 E2E deferred to Phase 5. MinIO/OpenAPI still deferred.
 - 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates (skipped Redis client); APScheduler overdue scanner every 60s; notifications poll every 25s; recharts on Reports; CSV export client-side.
