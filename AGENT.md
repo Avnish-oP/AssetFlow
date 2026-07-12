@@ -39,18 +39,18 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 - [x] Reports: utilization, most-used/idle, maintenance frequency, due-for-retirement, export
 
 **Phase 4 — Integration & demo**
-- [x] App pages on live API (no mock datasets; `stubs.py` unused)
+- [x] App pages on live API (no mock datasets; assets mock fallback removed)
 - [x] `backend/seed.py` demo dataset (Priya Shah / AF-0114 / Room B2)
-- [ ] Role-based UI gating for all 4 roles (API `require_role` only today)
-- [ ] Demo script (README §9) rehearsed end-to-end
+- [x] Role-based UI gating for all 4 roles (`lib/roles.ts` + Sidebar/page actions)
+- [ ] Demo script (README §9) rehearsed end-to-end — **Phase 5** (Phase 4 smoke done)
 
 ---
 
 ## Remaining work (priority)
 
-1. Role-based UI gating in sidebar + admin actions
+1. Full README §9 E2E rehearsal (Phase 5)
 2. Optional: generate OpenAPI TS client (or drop the checklist item and keep `api.ts`)
-3. Demo rehearsal
+3. Optional: MinIO photo upload / Redis cache
 
 ---
 
@@ -59,6 +59,7 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 *(append-only, newest on top)*
 
 - 2026-07-12 — merged origin/main: kept local Phase 3 reports/notifications stack (`report_service`, schemas, recharts, activity log); took remote toast + org-setup conflict toasts; cleaned AGENT ownership table.
+- 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; `maintenance→allocated` transition allowed; transfer Complete CTA clarified. Full §9 E2E deferred to Phase 5. MinIO/OpenAPI still deferred.
 - 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates (skipped Redis client); APScheduler overdue scanner every 60s; notifications poll every 25s; recharts on Reports; CSV export client-side.
 - 2026-07-12 — cleaned AGENT.md: dropped stale `apps/api`/`apps/web` ownership table; Phase 2–3 marked done.
 - 2026-07-12 — `backend/seed.py` is demo data source; `init.sql` is schema-only.

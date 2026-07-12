@@ -14,10 +14,14 @@ import {
   type DashboardSummary,
   type User,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 const POLL_MS = 25_000;
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const canSeeKpis = can(user?.role, "dashboard_kpis");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [returns, setReturns] = useState<
@@ -27,7 +31,7 @@ export default function DashboardPage() {
 
   const load = useCallback(async () => {
     const [nextSummary, nextNotifications, allocations, assets, employees] = await Promise.all([
-      apiFetch<DashboardSummary>("/reports/summary").catch(() => null),
+      canSeeKpis ? apiFetch<DashboardSummary>("/reports/summary").catch(() => null) : Promise.resolve(null),
       apiFetch<AppNotification[]>("/notifications?unread_only=true&limit=5").catch(() => [] as AppNotification[]),
       apiFetch<Allocation[]>("/allocations?status=active").catch(() => [] as Allocation[]),
       apiFetch<Asset[]>("/assets").catch(() => [] as Asset[]),
@@ -35,6 +39,7 @@ export default function DashboardPage() {
     ]);
 
     if (nextSummary) setSummary(nextSummary);
+    else if (!canSeeKpis) setSummary(null);
     setNotifications(nextNotifications);
 
     const today = new Date().toISOString().slice(0, 10);
@@ -56,7 +61,7 @@ export default function DashboardPage() {
       });
     setReturns(upcoming);
     setLoading(false);
-  }, []);
+  }, [canSeeKpis]);
 
   useEffect(() => {
     load();
@@ -83,7 +88,11 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-xl font-semibold">Dashboard</h1>
           <p className="text-sm text-secondary">
-            {loading ? "Loading operational status…" : "Live KPIs from /reports — refreshes every 25s."}
+            {loading
+              ? "Loading operational status…"
+              : canSeeKpis
+                ? "Live KPIs from /reports — refreshes every 25s."
+                : "Notifications and returns for your account. Full KPIs require manager access."}
           </p>
         </div>
         {summary ? (
@@ -94,11 +103,18 @@ export default function DashboardPage() {
         ) : null}
       </header>
 
+      {canSeeKpis ? (
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((kpi) => (
           <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} accentColor={kpi.accentColor} />
         ))}
       </section>
+      ) : (
+        <EmptyState
+          title="KPI dashboard requires manager access"
+          description="Employees still see notifications and upcoming returns below."
+        />
+      )}
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div>
@@ -153,9 +169,11 @@ export default function DashboardPage() {
         <button className={secondaryButtonClass} type="button" onClick={() => load()}>
           Refresh now
         </button>
-        <a className={buttonClass} href="/reports">
-          Open reports
-        </a>
+        {canSeeKpis ? (
+          <a className={buttonClass} href="/reports">
+            Open reports
+          </a>
+        ) : null}
       </div>
     </div>
   );

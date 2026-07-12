@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { apiFetch, type AppNotification } from "@/lib/api";
+import { canSeeNav } from "@/lib/roles";
 
 const items: { label: string; href: string; icon: React.ReactNode }[] = [
   {
@@ -141,7 +142,9 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-2 py-4">
-        {items.map((item) => {
+        {items
+          .filter((item) => canSeeNav(user?.role, item.href))
+          .map((item) => {
           const active = pathname === item.href;
           return (
             <Link

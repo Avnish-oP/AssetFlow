@@ -12,10 +12,14 @@ import {
   type DiscrepancyReport,
   type User,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 type Department = { id: number; name: string };
 
 export default function AuditsPage() {
+  const { user } = useAuth();
+  const allowed = can(user?.role, "audits");
   const [cycles, setCycles] = useState<AuditCycle[]>([]);
   const [selected, setSelected] = useState<AuditCycleDetail | null>(null);
   const [report, setReport] = useState<DiscrepancyReport | null>(null);
@@ -30,10 +34,23 @@ export default function AuditsPage() {
   }, []);
 
   useEffect(() => {
-    loadCycles().catch(() => setCycles([]));
+    if (!allowed) return;
+    loadCycles().catch(() => {
+      setCycles([]);
+      setError("Could not load audit cycles.");
+    });
     apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([]));
     apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([]));
-  }, [loadCycles]);
+  }, [allowed, loadCycles]);
+
+  if (!allowed) {
+    return (
+      <div className="grid gap-4">
+        <h1 className="text-xl font-semibold">Audit cycles</h1>
+        <EmptyState title="Insufficient permissions" description="Audits are limited to admin and asset managers." />
+      </div>
+    );
+  }
 
   async function openCycle(id: number) {
     setReport(null);

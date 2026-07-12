@@ -14,6 +14,8 @@ import {
   type TransferRequest,
   type User,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/lib/roles";
 
 type Conflict = {
   asset_id: number;
@@ -23,6 +25,9 @@ type Conflict = {
 };
 
 export default function AllocationsPage() {
+  const { user } = useAuth();
+  const canManage = can(user?.role, "allocations_manage");
+  const canRequestTransfer = can(user?.role, "transfer_request");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
@@ -30,6 +35,7 @@ export default function AllocationsPage() {
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [transferReason, setTransferReason] = useState("Required for active project handoff");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const [returnTarget, setReturnTarget] = useState<Allocation | null>(null);
@@ -38,13 +44,19 @@ export default function AllocationsPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   async function refresh() {
-    const [nextAssets, nextEmployees, nextAllocations, nextTransfers] = await Promise.all([
-      apiFetch<Asset[]>("/assets").catch(() => [] as Asset[]),
+    setLoadError(null);
+    try {
+      const nextAssets = await apiFetch<Asset[]>("/assets");
+      setAssets(nextAssets);
+    } catch {
+      setAssets([]);
+      setLoadError("Could not load assets.");
+    }
+    const [nextEmployees, nextAllocations, nextTransfers] = await Promise.all([
       apiFetch<User[]>("/employees").catch(() => [] as User[]),
       apiFetch<Allocation[]>("/allocations").catch(() => [] as Allocation[]),
       apiFetch<TransferRequest[]>("/transfers").catch(() => [] as TransferRequest[]),
     ]);
-    setAssets(nextAssets);
     setEmployees(nextEmployees);
     setAllocations(nextAllocations);
     setTransfers(nextTransfers);
@@ -141,7 +153,9 @@ export default function AllocationsPage() {
       </header>
 
       {message ? <p className="text-sm text-green">{message}</p> : null}
+      {loadError ? <p className="text-sm text-red">{loadError}</p> : null}
 
+      {canManage ? (
       <form
         className="card-surface grid gap-3 p-4 md:grid-cols-4"
         onSubmit={async (event) => {
@@ -174,8 +188,11 @@ export default function AllocationsPage() {
           {isSubmitting ? "Allocating..." : "Allocate"}
         </button>
       </form>
+      ) : (
+        <p className="text-sm text-secondary">You can submit a transfer request when an allocation conflict appears.</p>
+      )}
 
-      {conflict ? (
+      {conflict && canRequestTransfer ? (
         <div className="grid gap-4">
           <ConflictBanner title={`Already allocated: ${conflict.asset_tag ?? "Asset"}`}>
             Currently held by {conflict.current_holder?.holder_name ?? "another holder"}
@@ -219,7 +236,7 @@ export default function AllocationsPage() {
                 <StatusPill value={allocation.status} />
               </td>
               <td className="px-4 py-3">
-                {allocation.status === "active" || allocation.status === "overdue" ? (
+                {canManage && (allocation.status === "active" || allocation.status === "overdue") ? (
                   <button
                     className="text-xs text-green hover:underline"
                     type="button"
@@ -240,6 +257,12 @@ export default function AllocationsPage() {
 
       <section className="grid gap-3">
         <h2 className="text-base font-medium">Transfer requests</h2>
+        {transfers.some((transfer) => transfer.status === "approved") ? (
+          <p className="text-xs text-amber">
+            Approved transfers must be <span className="font-medium">Completed</span> to reallocate the asset to the new
+            holder.
+          </p>
+        ) : null}
         <DataTable headers={["Asset", "From", "To", "Status", "Actions"]}>
           {transfers.map((transfer) => (
             <TableRow key={transfer.id}>
@@ -251,7 +274,7 @@ export default function AllocationsPage() {
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-2">
-                  {transfer.status === "requested" ? (
+                  {canManage && transfer.status === "requested" ? (
                     <>
                       <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
                         Approve
@@ -261,9 +284,13 @@ export default function AllocationsPage() {
                       </button>
                     </>
                   ) : null}
-                  {transfer.status === "approved" ? (
-                    <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "complete")}>
-                      Complete
+                  {canManage && transfer.status === "approved" ? (
+                    <button
+                      className={`${buttonClass} h-8 px-3 text-xs`}
+                      type="button"
+                      onClick={() => actOnTransfer(transfer.id, "complete")}
+                    >
+                      Complete reallocation
                     </button>
                   ) : null}
                 </div>
