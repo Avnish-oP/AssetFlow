@@ -41,9 +41,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
     <div
       role="group"
       aria-label="Color theme"
-      className={`inline-flex rounded-[var(--radius-control)] border border-line bg-raised p-0.5 ${
-        compact ? "w-full" : ""
-      }`}
+      className={`inline-flex rounded-full border border-line bg-raised p-1 ${compact ? "w-full" : ""}`}
     >
       {OPTIONS.map((option) => {
         const active = theme === option.value;
@@ -54,13 +52,11 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
             aria-pressed={active}
             title={option.label}
             onClick={() => setTheme(option.value)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-[6px] px-2.5 py-1.5 text-[11px] transition ${
-              active
-                ? "bg-surface text-primary shadow-sm"
-                : "text-secondary hover:text-primary"
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
+              active ? "bg-surface text-primary shadow-[var(--shadow-sm)]" : "text-secondary hover:text-primary"
             }`}
           >
-            <span className={active ? "text-heading" : "text-muted"}>{option.icon}</span>
+            <span className={active ? "text-brand" : "text-muted"}>{option.icon}</span>
             <span>{option.label}</span>
           </button>
         );

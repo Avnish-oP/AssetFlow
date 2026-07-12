@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { MultiSelect } from "@/components/shared/MultiSelect";
+import { Select } from "@/components/shared/Select";
 import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
@@ -46,7 +49,7 @@ export default function AuditsPage() {
   if (!allowed) {
     return (
       <div className="grid gap-4">
-        <h1 className="text-xl font-semibold">Audit cycles</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Audit cycles</h1>
         <EmptyState title="Insufficient permissions" description="Audits are limited to admin and asset managers." />
       </div>
     );
@@ -112,7 +115,7 @@ export default function AuditsPage() {
     <div className="grid gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Audit cycles</h1>
+          <h1 className="font-display text-[1.85rem] tracking-tight">Audit cycles</h1>
           <p className="text-sm text-secondary">Verify assets, flag missing or damaged items, close with a discrepancy report.</p>
         </div>
         <button className={buttonClass} type="button" onClick={() => setShowForm(true)}>
@@ -139,32 +142,36 @@ export default function AuditsPage() {
             <input className={inputClass} name="name" required placeholder="Q3 Physical Audit" />
           </FormField>
           <FormField label="Scope department">
-            <select className={inputClass} name="scope_department_id">
-              <option value="">All departments</option>
-              {departments.map((department) => (
-                <option key={department.id} value={department.id}>
-                  {department.name}
-                </option>
-              ))}
-            </select>
+            <Select
+              name="scope_department_id"
+              defaultValue=""
+              options={[
+                { value: "", label: "All departments" },
+                ...departments.map((department) => ({
+                  value: String(department.id),
+                  label: department.name,
+                })),
+              ]}
+            />
           </FormField>
           <FormField label="Scope location">
             <input className={inputClass} name="scope_location" placeholder="Engineering" />
           </FormField>
           <FormField label="Auditors">
-            <select className={`${inputClass} h-auto min-h-10 py-2`} name="auditor_ids" multiple>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name}
-                </option>
-              ))}
-            </select>
+            <MultiSelect
+              name="auditor_ids"
+              placeholder="Select auditors"
+              options={employees.map((employee) => ({
+                value: String(employee.id),
+                label: employee.name,
+              }))}
+            />
           </FormField>
           <FormField label="Start date">
-            <input className={inputClass} name="start_date" type="date" required />
+            <DatePicker name="start_date" required placeholder="Start date" />
           </FormField>
           <FormField label="End date">
-            <input className={inputClass} name="end_date" type="date" required />
+            <DatePicker name="end_date" required placeholder="End date" />
           </FormField>
           <div className="flex gap-2 md:col-span-2">
             <button className={buttonClass} type="submit">
@@ -200,7 +207,7 @@ export default function AuditsPage() {
                   <StatusPill value={cycle.status} />
                 </div>
                 <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-raised">
-                  <div className="h-full bg-green transition-all" style={{ width: `${progress}%` }} />
+                  <div className="h-full bg-brand transition-all" style={{ width: `${progress}%` }} />
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-secondary">
                   <span>{cycle.verified_count} verified</span>
@@ -260,7 +267,7 @@ export default function AuditsPage() {
                 <td className="px-4 py-3">
                   {selected.status === "open" && item.verification_status === "pending" ? (
                     <div className="flex flex-wrap gap-2">
-                      <button className="text-xs text-green hover:underline" type="button" onClick={() => verifyItem(item.id, "verified")}>
+                      <button className="text-xs text-brand hover:underline" type="button" onClick={() => verifyItem(item.id, "verified")}>
                         Verify
                       </button>
                       <button className="text-xs text-red hover:underline" type="button" onClick={() => verifyItem(item.id, "missing")}>

@@ -57,7 +57,7 @@ export default function AssetDetailPage() {
             </Link>{" "}
             / {asset.tag}
           </p>
-          <h1 className="mt-1 text-xl font-semibold">
+          <h1 className="mt-1 font-display text-[1.85rem] tracking-tight">
             {asset.tag} — {asset.name}
           </h1>
           <p className="text-sm text-secondary">

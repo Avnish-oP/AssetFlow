@@ -134,73 +134,89 @@ export function Sidebar() {
 
   return (
     <>
-      <button type="button" aria-label="Toggle navigation" aria-expanded={open} className="fixed left-4 top-4 z-50 grid size-10 place-items-center rounded-lg border border-line bg-surface text-heading shadow-sm lg:hidden" onClick={() => setOpen((value) => !value)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
-      {open && <button type="button" aria-label="Close navigation" className="fixed inset-0 z-30 bg-primary/20 lg:hidden" onClick={() => setOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[248px] -translate-x-full flex-col border-r border-line bg-surface shadow-xl transition-transform lg:translate-x-0 lg:shadow-none ${open ? "translate-x-0" : ""}`}>
-      <div className="border-b border-line px-4 py-5">
-        <div className="flex items-center gap-2.5">
-          <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
-          <div>
-            <div className="text-lg font-semibold leading-tight">
-              <span className="text-heading">Asset</span><span className="text-blue">Flow</span>
+      <button
+        type="button"
+        aria-label="Toggle navigation"
+        aria-expanded={open}
+        className="fixed left-4 top-4 z-50 grid size-11 place-items-center rounded-2xl border border-line bg-surface/95 text-primary shadow-[var(--shadow-pin)] backdrop-blur lg:hidden"
+        onClick={() => setOpen((value) => !value)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-5" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+      {open ? (
+        <button type="button" aria-label="Close navigation" className="fixed inset-0 z-30 bg-primary/25 backdrop-blur-[1px] lg:hidden" onClick={() => setOpen(false)} />
+      ) : null}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-[260px] -translate-x-full flex-col border-r border-line bg-surface/95 shadow-[var(--shadow-pin)] backdrop-blur-md transition-transform duration-300 lg:translate-x-0 ${
+          open ? "translate-x-0" : ""
+        }`}
+      >
+        <div className="border-b border-line px-5 py-5">
+          <div className="flex items-center gap-3">
+            <div className="grid size-10 place-items-center overflow-hidden rounded-xl bg-brand-bg">
+              <img src="/logo.svg" alt="" className="h-7 w-auto" />
             </div>
-            <div className="text-xs text-secondary">Operations console</div>
+            <div>
+              <div className="font-display text-[1.2rem] leading-none tracking-tight text-primary">
+                Asset<span className="text-brand">Flow</span>
+              </div>
+              <div className="mt-1 text-[11px] text-muted">Enterprise console</div>
+            </div>
           </div>
         </div>
-      </div>
-      <nav className="flex-1 space-y-1 px-2 py-4">
-        {items
-          .filter((item) => canSeeNav(user?.role, item.href))
-          .map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className={`flex items-center gap-2.5 border-l-[3px] px-3 py-2 text-sm transition ${
-                active
-                  ? "rounded-r-md border-heading bg-raised text-primary"
-                  : "rounded-md border-transparent text-secondary hover:bg-raised hover:text-primary"
-              }`}
-            >
-              <span className={active ? "text-heading" : "text-muted"}>{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
-              {item.href === "/notifications" && unread > 0 ? (
-                <span className="rounded-full bg-green-bg px-1.5 py-0.5 text-[10px] font-medium text-green">
-                  {unread}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="border-t border-line p-4">
-        <div className="mb-3">
-          <div className="mb-1.5 text-[11px] text-muted">Theme</div>
+
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
+          {items
+            .filter((item) => canSeeNav(user?.role, item.href))
+            .map((item) => {
+              const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition ${
+                    active
+                      ? "bg-brand-bg font-medium text-brand"
+                      : "text-secondary hover:bg-raised hover:text-primary"
+                  }`}
+                >
+                  {active ? <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-brand" aria-hidden /> : null}
+                  <span className={active ? "text-brand" : "text-muted"}>{item.icon}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.href === "/notifications" && unread > 0 ? (
+                    <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-brand">{unread}</span>
+                  ) : null}
+                </Link>
+              );
+            })}
+        </nav>
+
+        <div className="space-y-3 border-t border-line p-4">
           <ThemeSwitcher compact />
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-bg text-xs font-semibold text-green">
-            {initials(user?.name)}
+          <div className="flex items-center gap-3 rounded-xl bg-raised p-2.5">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-bg text-xs font-semibold text-brand">
+              {initials(user?.name)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium text-primary">{user?.name ?? "Demo user"}</div>
+              <span className="mt-0.5 inline-flex rounded-full bg-surface px-2 py-0.5 text-[10px] capitalize text-secondary">
+                {user?.role ?? "employee"}
+              </span>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm text-primary">{user?.name ?? "Demo user"}</div>
-            <span className="mt-0.5 inline-flex rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] text-secondary">
-              {user?.role ?? "employee"}
-            </span>
-          </div>
+          <button
+            className="w-full rounded-xl px-3 py-2 text-left text-xs font-medium text-secondary transition hover:bg-raised hover:text-primary"
+            onClick={() => {
+              logout();
+              router.push("/login");
+            }}
+          >
+            Sign out
+          </button>
         </div>
-        <button
-          className="mt-3 text-xs text-secondary hover:text-primary"
-          onClick={() => {
-            logout();
-            router.push("/login");
-          }}
-        >
-          Sign out
-        </button>
-      </div>
       </aside>
     </>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { Select } from "@/components/shared/Select";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type User } from "@/lib/api";
@@ -53,7 +54,7 @@ export default function OrgSetupPage() {
   if (!canManage) {
     return (
       <div className="grid gap-4">
-        <h1 className="text-xl font-semibold">Organization setup</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Organization setup</h1>
         <EmptyState
           title="Insufficient permissions"
           description="Organization setup is limited to admin and asset managers."
@@ -209,7 +210,7 @@ export default function OrgSetupPage() {
   return (
     <div className="grid gap-6">
       <header>
-        <h1 className="text-xl font-semibold">Organization setup</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Organization setup</h1>
         <p className="text-sm text-secondary">Departments, categories, and employee directory.</p>
       </header>
       {error ? <p className="text-sm text-red">{error}</p> : null}
@@ -240,24 +241,30 @@ export default function OrgSetupPage() {
               <input className={inputClass} name="name" required />
             </FormField>
             <FormField label="Parent department">
-              <select className={inputClass} name="parent_department_id" defaultValue="">
-                <option value="">None</option>
-                {departments.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="parent_department_id"
+                defaultValue=""
+                options={[
+                  { value: "", label: "None" },
+                  ...departments.map((department) => ({
+                    value: String(department.id),
+                    label: department.name,
+                  })),
+                ]}
+              />
             </FormField>
             <FormField label="Department head">
-              <select className={inputClass} name="head_id" defaultValue="">
-                <option value="">Unassigned</option>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="head_id"
+                defaultValue=""
+                options={[
+                  { value: "", label: "Unassigned" },
+                  ...employees.map((employee) => ({
+                    value: String(employee.id),
+                    label: employee.name,
+                  })),
+                ]}
+              />
             </FormField>
             <button className={`${buttonClass} mt-6`}>Add department</button>
           </form>
@@ -266,42 +273,40 @@ export default function OrgSetupPage() {
               <tr key={department.id}>
                 <td className="px-4 py-3">{department.name}</td>
                 <td className="px-4 py-3">
-                  <select
-                    className={inputClass}
-                    value={department.head_id ?? ""}
-                    onChange={(event) =>
+                  <Select
+                    value={department.head_id != null ? String(department.head_id) : ""}
+                    onChange={(next) =>
                       void updateDepartment(department, {
-                        head_id: event.target.value ? Number(event.target.value) : null,
+                        head_id: next ? Number(next) : null,
                       })
                     }
-                  >
-                    <option value="">Unassigned</option>
-                    {employees.map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Unassigned" },
+                      ...employees.map((employee) => ({
+                        value: String(employee.id),
+                        label: employee.name,
+                      })),
+                    ]}
+                  />
                 </td>
                 <td className="px-4 py-3">
-                  <select
-                    className={inputClass}
-                    value={department.parent_department_id ?? ""}
-                    onChange={(event) =>
+                  <Select
+                    value={department.parent_department_id != null ? String(department.parent_department_id) : ""}
+                    onChange={(next) =>
                       void updateDepartment(department, {
-                        parent_department_id: event.target.value ? Number(event.target.value) : null,
+                        parent_department_id: next ? Number(next) : null,
                       })
                     }
-                  >
-                    <option value="">None</option>
-                    {departments
-                      .filter((row) => row.id !== department.id)
-                      .map((row) => (
-                        <option key={row.id} value={row.id}>
-                          {row.name}
-                        </option>
-                      ))}
-                  </select>
+                    options={[
+                      { value: "", label: "None" },
+                      ...departments
+                        .filter((row) => row.id !== department.id)
+                        .map((row) => ({
+                          value: String(row.id),
+                          label: row.name,
+                        })),
+                    ]}
+                  />
                 </td>
                 <td className="px-4 py-3">
                   <StatusPill value={department.status} />
@@ -392,14 +397,17 @@ export default function OrgSetupPage() {
               <input className={inputClass} name="password" type="password" minLength={6} required />
             </FormField>
             <FormField label="Department">
-              <select className={inputClass} name="department_id" defaultValue="">
-                <option value="">Unassigned</option>
-                {departments.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="department_id"
+                defaultValue=""
+                options={[
+                  { value: "", label: "Unassigned" },
+                  ...departments.map((department) => ({
+                    value: String(department.id),
+                    label: department.name,
+                  })),
+                ]}
+              />
             </FormField>
             <button className={`${buttonClass} mt-6`}>Add employee</button>
           </form>

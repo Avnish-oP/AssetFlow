@@ -36,10 +36,10 @@ function ResetPasswordForm() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-bg px-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
-        <h1 className="text-xl font-semibold">Reset password</h1>
-        <p className="mt-1 text-sm text-secondary">Paste the reset token and choose a new password.</p>
+    <main className="auth-panel grid min-h-screen place-items-center px-4 py-10">
+      <form onSubmit={submit} className="card-surface animate-fade-up w-full max-w-sm p-8">
+        <h1 className="font-display text-2xl tracking-tight">Reset password</h1>
+        <p className="mt-1.5 text-sm text-secondary">Paste the reset token and choose a new password.</p>
         <div className="mt-6 grid gap-4">
           <FormField label="Reset token">
             <textarea
@@ -65,7 +65,7 @@ function ResetPasswordForm() {
           {isSubmitting ? "Updating..." : "Update password"}
         </button>
         <p className="mt-4 text-center text-xs text-secondary">
-          <Link href="/login" className="text-green">
+          <Link href="/login" className="text-brand">
             Back to sign in
           </Link>
         </p>

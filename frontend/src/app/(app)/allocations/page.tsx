@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { Select } from "@/components/shared/Select";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import {
@@ -150,11 +152,11 @@ export default function AllocationsPage() {
   return (
     <div className="grid gap-6">
       <header>
-        <h1 className="text-xl font-semibold">Allocation & transfer</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Allocation & transfer</h1>
         <p className="text-sm text-secondary">Direct re-allocation is blocked when an active holder exists.</p>
       </header>
 
-      {message ? <p className="text-sm text-green">{message}</p> : null}
+      {message ? <p className="text-sm text-brand">{message}</p> : null}
       {loadError ? <p className="text-sm text-red">{loadError}</p> : null}
 
       {canManage ? (
@@ -166,25 +168,29 @@ export default function AllocationsPage() {
         }}
       >
         <FormField label="Asset">
-          <select className={inputClass} name="asset_id">
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.tag} {asset.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            key={`alloc-asset-${assets[0]?.id ?? "x"}`}
+            name="asset_id"
+            options={assets.map((asset) => ({
+              value: String(asset.id),
+              label: `${asset.tag} ${asset.name}`,
+            }))}
+            defaultValue={assets[0] ? String(assets[0].id) : ""}
+          />
         </FormField>
         <FormField label="Holder">
-          <select className={inputClass} name="holder_user_id">
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            key={`alloc-holder-${employees[0]?.id ?? "x"}`}
+            name="holder_user_id"
+            options={employees.map((employee) => ({
+              value: String(employee.id),
+              label: employee.name,
+            }))}
+            defaultValue={employees[0] ? String(employees[0].id) : ""}
+          />
         </FormField>
         <FormField label="Expected return">
-          <input className={inputClass} name="expected_return_date" type="date" />
+          <DatePicker name="expected_return_date" placeholder="Expected return" />
         </FormField>
         <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
           {isSubmitting ? "Allocating..." : "Allocate"}
@@ -209,13 +215,14 @@ export default function AllocationsPage() {
             }}
           >
             <FormField label="Transfer to">
-              <select className={inputClass} name="to_holder_id">
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="to_holder_id"
+                options={employees.map((employee) => ({
+                  value: String(employee.id),
+                  label: employee.name,
+                }))}
+                defaultValue={employees[0] ? String(employees[0].id) : ""}
+              />
             </FormField>
             <FormField label="Reason">
               <input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} />
@@ -242,7 +249,7 @@ export default function AllocationsPage() {
                 (allocation.status === "active" || allocation.status === "overdue") &&
                 (canManage || allocation.holder_user_id === user?.id) ? (
                   <button
-                    className="text-xs text-green hover:underline"
+                    className="text-xs text-brand hover:underline"
                     type="button"
                     onClick={() => {
                       setReturnTarget(allocation);
@@ -280,7 +287,7 @@ export default function AllocationsPage() {
                 <div className="flex flex-wrap gap-2">
                   {canApproveTransfer && transfer.status === "requested" ? (
                     <>
-                      <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
+                      <button className="text-xs text-brand hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
                         Approve
                       </button>
                       <button className="text-xs text-red hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "reject")}>
@@ -311,11 +318,15 @@ export default function AllocationsPage() {
             <p className="mb-4 text-sm text-secondary">{assetLabel(returnTarget.asset_id)}</p>
             <div className="grid gap-3">
               <FormField label="Condition">
-                <select className={inputClass} value={returnCondition} onChange={(event) => setReturnCondition(event.target.value)}>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
-                  <option value="damaged">Damaged</option>
-                </select>
+                <Select
+                  value={returnCondition}
+                  onChange={setReturnCondition}
+                  options={[
+                    { value: "good", label: "Good" },
+                    { value: "fair", label: "Fair" },
+                    { value: "damaged", label: "Damaged" },
+                  ]}
+                />
               </FormField>
               <FormField label="Condition notes">
                 <textarea

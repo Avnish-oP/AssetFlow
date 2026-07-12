@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { Select } from "@/components/shared/Select";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, apiUpload, type Asset } from "@/lib/api";
@@ -26,6 +28,7 @@ export default function AssetsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [formKey, setFormKey] = useState(0);
   const { showToast } = useToast();
 
   const load = useCallback(() => {
@@ -98,7 +101,7 @@ export default function AssetsPage() {
   return (
     <div className="grid gap-6">
       <header>
-        <h1 className="text-xl font-semibold">Assets</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Assets</h1>
         <p className="text-sm text-secondary">
           {canWrite
             ? "Register assets (auto tag) and search the directory by tag, serial, or name."
@@ -109,6 +112,7 @@ export default function AssetsPage() {
       {canWrite ? (
         <div className="card-surface grid gap-4 overflow-hidden p-4">
           <form
+            key={formKey}
             className="grid min-w-0 gap-3 md:grid-cols-3 lg:grid-cols-4"
             onSubmit={async (event) => {
               event.preventDefault();
@@ -116,34 +120,39 @@ export default function AssetsPage() {
               await createAsset(new FormData(form));
               form.reset();
               setPhotoUrl("");
+              setFormKey((key) => key + 1);
             }}
           >
             <FormField label="Asset name">
               <input className={inputClass} name="name" required />
             </FormField>
             <FormField label="Category">
-              <select className={inputClass} name="category_id" defaultValue="">
-                <option value="">Uncategorized</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="category_id"
+                defaultValue=""
+                options={[
+                  { value: "", label: "Uncategorized" },
+                  ...categories.map((category) => ({ value: String(category.id), label: category.name })),
+                ]}
+              />
             </FormField>
             <FormField label="Serial number">
               <input className={inputClass} name="serial_number" />
             </FormField>
             <FormField label="Condition">
-              <select className={inputClass} name="condition" defaultValue="good">
-                <option value="new">New</option>
-                <option value="good">Good</option>
-                <option value="fair">Fair</option>
-                <option value="damaged">Damaged</option>
-              </select>
+              <Select
+                name="condition"
+                defaultValue="good"
+                options={[
+                  { value: "new", label: "New" },
+                  { value: "good", label: "Good" },
+                  { value: "fair", label: "Fair" },
+                  { value: "damaged", label: "Damaged" },
+                ]}
+              />
             </FormField>
             <FormField label="Acquisition date">
-              <input className={inputClass} name="acquisition_date" type="date" />
+              <DatePicker name="acquisition_date" placeholder="Acquisition date" />
             </FormField>
             <FormField label="Acquisition cost">
               <input className={inputClass} name="acquisition_cost" type="number" min="0" step="0.01" />
@@ -162,7 +171,7 @@ export default function AssetsPage() {
               </div>
               {uploading ? <p className="mt-1 text-xs text-secondary">Uploading…</p> : null}
               {photoUrl ? (
-                <p className="mt-1 truncate text-xs text-green" title={photoUrl}>
+                <p className="mt-1 truncate text-xs text-brand" title={photoUrl}>
                   Uploaded
                 </p>
               ) : null}
@@ -193,24 +202,30 @@ export default function AssetsPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select className={`${inputClass} max-w-full sm:max-w-[180px]`} value={status} onChange={(event) => setStatus(event.target.value)}>
-          <option value="">All statuses</option>
-          <option value="available">Available</option>
-          <option value="allocated">Allocated</option>
-          <option value="reserved">Reserved</option>
-          <option value="maintenance">Maintenance</option>
-          <option value="lost">Lost</option>
-          <option value="retired">Retired</option>
-          <option value="disposed">Disposed</option>
-        </select>
-        <select className={`${inputClass} max-w-full sm:max-w-[200px]`} value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
-          <option value="">All categories</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <Select
+          className="max-w-full sm:max-w-[180px]"
+          value={status}
+          onChange={setStatus}
+          options={[
+            { value: "", label: "All statuses" },
+            { value: "available", label: "Available" },
+            { value: "allocated", label: "Allocated" },
+            { value: "reserved", label: "Reserved" },
+            { value: "maintenance", label: "Maintenance" },
+            { value: "lost", label: "Lost" },
+            { value: "retired", label: "Retired" },
+            { value: "disposed", label: "Disposed" },
+          ]}
+        />
+        <Select
+          className="max-w-full sm:max-w-[200px]"
+          value={categoryId}
+          onChange={setCategoryId}
+          options={[
+            { value: "", label: "All categories" },
+            ...categories.map((category) => ({ value: String(category.id), label: category.name })),
+          ]}
+        />
         <input
           className={`${inputClass} max-w-full sm:max-w-[12rem]`}
           placeholder="Location"
@@ -235,7 +250,7 @@ export default function AssetsPage() {
           {assets.map((asset) => (
             <tr key={asset.id}>
               <td className="px-4 py-3">
-                <Link className="text-green hover:underline" href={`/assets/${asset.id}`}>
+                <Link className="text-brand hover:underline" href={`/assets/${asset.id}`}>
                   {asset.tag}
                 </Link>
               </td>

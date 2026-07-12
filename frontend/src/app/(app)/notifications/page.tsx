@@ -67,7 +67,7 @@ export default function NotificationsPage() {
     <div className="grid gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Activity & notifications</h1>
+          <h1 className="font-display text-[1.85rem] tracking-tight">Activity & notifications</h1>
           <p className="text-sm text-secondary">Polling every 25s. {unread} unread.</p>
         </div>
         <div className="flex gap-2">
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
         ) : (
           <DataTable headers={["Message", "Type", "Status", "When", ""]}>
             {filteredNotifications.map((row) => (
-              <TableRow key={row.id} className={row.is_read ? "" : "bg-green-bg/20"}>
+              <TableRow key={row.id} className={row.is_read ? "" : "bg-brand-bg/20"}>
                 <td className="px-4 py-3">{row.message}</td>
                 <td className="px-4 py-3">
                   <StatusPill value={row.type} />
@@ -120,7 +120,7 @@ export default function NotificationsPage() {
                 <td className="px-4 py-3 text-secondary">{new Date(row.created_at).toLocaleString()}</td>
                 <td className="px-4 py-3">
                   {!row.is_read ? (
-                    <button className="text-xs text-green hover:underline" type="button" onClick={() => markRead(row.id)}>
+                    <button className="text-xs text-brand hover:underline" type="button" onClick={() => markRead(row.id)}>
                       Mark read
                     </button>
                   ) : (

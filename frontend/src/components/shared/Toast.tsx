@@ -14,6 +14,12 @@ type ToastContextType = {
 
 const ToastContext = createContext<ToastContextType | null>(null);
 
+const toastStyles: Record<ToastMessage["type"], string> = {
+  success: "border-brand/25 bg-brand-bg text-brand",
+  error: "border-red/25 bg-red-bg text-red",
+  info: "border-line bg-surface text-primary",
+};
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -28,17 +34,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2.5">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto rounded-lg px-4 py-3 text-sm shadow-xl border backdrop-blur-xl transition-all ${
-              t.type === "success"
-                ? "bg-[#16311f]/90 border-[#22c55e] text-[#f5f5f5]"
-                : t.type === "error"
-                ? "bg-[#3a1a1a]/90 border-[#ef4444] text-[#f5f5f5]"
-                : "bg-[#131316]/90 border-[#3a3a3f] text-[#f5f5f5]"
-            }`}
+            className={`pointer-events-auto max-w-sm rounded-2xl border px-4 py-3 text-sm shadow-[var(--shadow-pin)] backdrop-blur-md ${toastStyles[t.type]}`}
+            style={{ animation: "toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both" }}
           >
             {t.message}
           </div>
