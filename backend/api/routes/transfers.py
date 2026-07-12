@@ -14,13 +14,21 @@ from services.transfer_service import act_on_transfer, create_transfer_request
 router = APIRouter(prefix="/transfers", tags=["transfers"])
 
 
-@router.get("", response_model=list[TransferResponse], dependencies=[Depends(require_role("admin", "asset_manager", "dept_head"))])
+@router.get("", response_model=list[TransferResponse])
 async def list_transfers(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
 ):
     stmt = select(TransferRequest).order_by(TransferRequest.created_at.desc())
-    if user.role == "dept_head" and user.department_id:
+    if user.role == "employee":
+        stmt = stmt.where(
+            or_(
+                TransferRequest.requested_by == user.id,
+                TransferRequest.from_holder_id == user.id,
+                TransferRequest.to_holder_id == user.id,
+            )
+        )
+    elif user.role == "dept_head" and user.department_id:
         dept_user_ids = (
             await db.scalars(select(User.id).where(User.department_id == user.department_id))
         ).all()
@@ -40,14 +48,33 @@ async def create_transfer(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
 ):
-    active = await db.scalar(select(Allocation).where(Allocation.asset_id == payload.asset_id, Allocation.status == "active"))
+    active = await db.scalar(
+        select(Allocation).where(
+            Allocation.asset_id == payload.asset_id,
+            Allocation.status.in_(["active", "overdue"]),
+        )
+    )
+    if not active:
+        raise HTTPException(status_code=400, detail="Asset has no active allocation to transfer")
+    if active.holder_user_id == payload.to_holder_id:
+        raise HTTPException(status_code=400, detail="Asset is already held by the selected user")
+
+    open_transfer = await db.scalar(
+        select(TransferRequest).where(
+            TransferRequest.asset_id == payload.asset_id,
+            TransferRequest.status.in_(["requested", "approved"]),
+        )
+    )
+    if open_transfer:
+        raise HTTPException(status_code=409, detail="An open transfer already exists for this asset")
+
     return await create_transfer_request(
         db,
         asset_id=payload.asset_id,
         to_holder_id=payload.to_holder_id,
         reason=payload.reason,
         requested_by=user.id,
-        from_holder_id=active.holder_user_id if active else None,
+        from_holder_id=active.holder_user_id,
     )
 
 

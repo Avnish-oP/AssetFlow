@@ -26,6 +26,12 @@ async def list_allocations(
     stmt = select(Allocation).order_by(Allocation.allocated_at.desc())
     if status:
         stmt = stmt.where(Allocation.status == status)
+
+    # Org-wide read for active/overdue so any role can request transfers of held assets.
+    org_wide_statuses = {"active", "overdue"}
+    if status in org_wide_statuses:
+        return (await db.scalars(stmt)).all()
+
     if user.role == "employee":
         stmt = stmt.where(Allocation.holder_user_id == user.id)
     elif user.role == "dept_head" and user.department_id:
