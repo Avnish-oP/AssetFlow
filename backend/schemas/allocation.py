@@ -14,6 +14,7 @@ class AllocationCreate(BaseModel):
 
 class AllocationReturn(BaseModel):
     return_condition_notes: str | None = None
+    condition: str | None = None
 
 
 class AllocationResponse(OrmModel):
@@ -24,6 +25,7 @@ class AllocationResponse(OrmModel):
     allocated_at: datetime
     expected_return_date: date | None = None
     returned_at: datetime | None = None
+    return_condition_notes: str | None = None
     status: str
 
 

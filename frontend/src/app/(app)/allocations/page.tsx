@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { ConflictBanner } from "@/components/shared/ConflictBanner";
-import { DataTable } from "@/components/shared/DataTable";
+import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
-import { apiFetch, type Allocation, type ApiError, type Asset, type User } from "@/lib/api";
+import {
+  apiFetch,
+  type Allocation,
+  type ApiError,
+  type Asset,
+  type TransferRequest,
+  type User,
+} from "@/lib/api";
 
 type Conflict = {
   asset_id: number;
@@ -18,19 +25,36 @@ export default function AllocationsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
+  const [transfers, setTransfers] = useState<TransferRequest[]>([]);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [transferReason, setTransferReason] = useState("Required for active project handoff");
+  const [returnTarget, setReturnTarget] = useState<Allocation | null>(null);
+  const [returnNotes, setReturnNotes] = useState("");
+  const [returnCondition, setReturnCondition] = useState("good");
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function refresh() {
+    const [nextAssets, nextEmployees, nextAllocations, nextTransfers] = await Promise.all([
+      apiFetch<Asset[]>("/assets").catch(() => [] as Asset[]),
+      apiFetch<User[]>("/employees").catch(() => [] as User[]),
+      apiFetch<Allocation[]>("/allocations").catch(() => [] as Allocation[]),
+      apiFetch<TransferRequest[]>("/transfers").catch(() => [] as TransferRequest[]),
+    ]);
+    setAssets(nextAssets);
+    setEmployees(nextEmployees);
+    setAllocations(nextAllocations);
+    setTransfers(nextTransfers);
+  }
 
   useEffect(() => {
-    apiFetch<Asset[]>("/assets").then(setAssets).catch(() => setAssets([{ id: 1, tag: "AF-0114", name: "MacBook Pro 14", status: "allocated", condition: "good", location: "Engineering", is_bookable: false }]));
-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.local", role: "employee", status: "active" }, { id: 3, name: "Amit Rao", email: "amit@assetflow.local", role: "employee", status: "active" }]));
-    apiFetch<Allocation[]>("/allocations").then(setAllocations).catch(() => setAllocations([]));
+    refresh();
   }, []);
 
   async function submitAllocation(form: FormData) {
     setConflict(null);
+    setMessage(null);
     try {
-      const allocation = await apiFetch<Allocation>("/allocations", {
+      await apiFetch<Allocation>("/allocations", {
         method: "POST",
         body: JSON.stringify({
           asset_id: Number(form.get("asset_id")),
@@ -38,7 +62,7 @@ export default function AllocationsPage() {
           expected_return_date: form.get("expected_return_date") || null,
         }),
       });
-      setAllocations((current) => [allocation, ...current]);
+      await refresh();
     } catch (error) {
       const apiError = error as ApiError;
       if (apiError.status === 409) setConflict(apiError.detail as Conflict);
@@ -50,10 +74,45 @@ export default function AllocationsPage() {
     if (!conflict) return;
     await apiFetch("/transfers", {
       method: "POST",
-      body: JSON.stringify({ asset_id: conflict.asset_id, to_holder_id: Number(form.get("to_holder_id")), reason: transferReason }),
+      body: JSON.stringify({
+        asset_id: conflict.asset_id,
+        to_holder_id: Number(form.get("to_holder_id")),
+        reason: transferReason,
+      }),
     });
     setConflict(null);
+    setMessage("Transfer request submitted");
+    await refresh();
   }
+
+  async function actOnTransfer(id: number, action: "approve" | "complete" | "reject") {
+    setMessage(null);
+    await apiFetch(`/transfers/${id}/${action}`, { method: "POST" });
+    setMessage(`Transfer ${action}d`);
+    await refresh();
+  }
+
+  async function submitReturn() {
+    if (!returnTarget) return;
+    await apiFetch(`/allocations/${returnTarget.id}/return`, {
+      method: "POST",
+      body: JSON.stringify({
+        return_condition_notes: returnNotes || null,
+        condition: returnCondition,
+      }),
+    });
+    setReturnTarget(null);
+    setReturnNotes("");
+    setReturnCondition("good");
+    setMessage("Asset returned");
+    await refresh();
+  }
+
+  const employeeName = (id?: number | null) => employees.find((employee) => employee.id === id)?.name ?? (id ? `#${id}` : "—");
+  const assetLabel = (id: number) => {
+    const asset = assets.find((row) => row.id === id);
+    return asset ? `${asset.tag} ${asset.name}` : `#${id}`;
+  };
 
   return (
     <div className="grid gap-6">
@@ -61,48 +120,171 @@ export default function AllocationsPage() {
         <h1 className="text-xl font-semibold">Allocation & transfer</h1>
         <p className="text-sm text-secondary">Direct re-allocation is blocked when an active holder exists.</p>
       </header>
+
+      {message ? <p className="text-sm text-green">{message}</p> : null}
+
       <form
-        className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
+        className="card-surface grid gap-3 p-4 md:grid-cols-4"
         onSubmit={async (event) => {
           event.preventDefault();
           await submitAllocation(new FormData(event.currentTarget));
         }}
       >
-        <FormField label="Asset"><select className={inputClass} name="asset_id">{assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.tag} {asset.name}</option>)}</select></FormField>
-        <FormField label="Holder"><select className={inputClass} name="holder_user_id">{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></FormField>
-        <FormField label="Expected return"><input className={inputClass} name="expected_return_date" type="date" /></FormField>
+        <FormField label="Asset">
+          <select className={inputClass} name="asset_id">
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.tag} {asset.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Holder">
+          <select className={inputClass} name="holder_user_id">
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Expected return">
+          <input className={inputClass} name="expected_return_date" type="date" />
+        </FormField>
         <button className={`${buttonClass} mt-6`}>Allocate</button>
       </form>
+
       {conflict ? (
         <div className="grid gap-4">
           <ConflictBanner title={`Already allocated: ${conflict.asset_tag ?? "Asset"}`}>
             Currently held by {conflict.current_holder?.holder_name ?? "another holder"}
-            {conflict.current_holder?.department ? ` (${conflict.current_holder.department})` : ""}. Submit a transfer request instead.
+            {conflict.current_holder?.department ? ` (${conflict.current_holder.department})` : ""}. Submit a transfer
+            request instead.
           </ConflictBanner>
           <form
-            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-[1fr_2fr_auto]"
+            className="card-surface grid gap-3 p-4 md:grid-cols-[1fr_2fr_auto]"
             onSubmit={async (event) => {
               event.preventDefault();
               await submitTransfer(new FormData(event.currentTarget));
             }}
           >
-            <FormField label="Transfer to"><select className={inputClass} name="to_holder_id">{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}</select></FormField>
-            <FormField label="Reason"><input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} /></FormField>
+            <FormField label="Transfer to">
+              <select className={inputClass} name="to_holder_id">
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Reason">
+              <input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} />
+            </FormField>
             <button className={`${secondaryButtonClass} mt-6`}>Submit transfer</button>
           </form>
         </div>
       ) : null}
-      <DataTable headers={["Asset ID", "Holder ID", "Allocated", "Status"]}>
-        {allocations.map((allocation) => (
-          <tr key={allocation.id}>
-            <td className="px-4 py-3">{allocation.asset_id}</td>
-            <td className="px-4 py-3 text-secondary">{allocation.holder_user_id ?? "-"}</td>
-            <td className="px-4 py-3 text-secondary">{new Date(allocation.allocated_at).toLocaleString()}</td>
-            <td className="px-4 py-3"><StatusPill value={allocation.status} /></td>
-          </tr>
-        ))}
-      </DataTable>
+
+      <section className="grid gap-3">
+        <h2 className="text-base font-medium">Active allocations</h2>
+        <DataTable headers={["Asset", "Holder", "Allocated", "Due", "Status", ""]}>
+          {allocations.map((allocation) => (
+            <TableRow key={allocation.id}>
+              <td className="px-4 py-3">{assetLabel(allocation.asset_id)}</td>
+              <td className="px-4 py-3 text-secondary">{employeeName(allocation.holder_user_id)}</td>
+              <td className="px-4 py-3 text-secondary">{new Date(allocation.allocated_at).toLocaleString()}</td>
+              <td className="px-4 py-3 text-secondary">{allocation.expected_return_date ?? "—"}</td>
+              <td className="px-4 py-3">
+                <StatusPill value={allocation.status} />
+              </td>
+              <td className="px-4 py-3">
+                {allocation.status === "active" || allocation.status === "overdue" ? (
+                  <button
+                    className="text-xs text-green hover:underline"
+                    type="button"
+                    onClick={() => {
+                      setReturnTarget(allocation);
+                      setReturnNotes("");
+                      setReturnCondition("good");
+                    }}
+                  >
+                    Return
+                  </button>
+                ) : null}
+              </td>
+            </TableRow>
+          ))}
+        </DataTable>
+      </section>
+
+      <section className="grid gap-3">
+        <h2 className="text-base font-medium">Transfer requests</h2>
+        <DataTable headers={["Asset", "From", "To", "Status", "Actions"]}>
+          {transfers.map((transfer) => (
+            <TableRow key={transfer.id}>
+              <td className="px-4 py-3">{assetLabel(transfer.asset_id)}</td>
+              <td className="px-4 py-3 text-secondary">{employeeName(transfer.from_holder_id)}</td>
+              <td className="px-4 py-3 text-secondary">{employeeName(transfer.to_holder_id)}</td>
+              <td className="px-4 py-3">
+                <StatusPill value={transfer.status} />
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex flex-wrap gap-2">
+                  {transfer.status === "requested" ? (
+                    <>
+                      <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
+                        Approve
+                      </button>
+                      <button className="text-xs text-red hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "reject")}>
+                        Reject
+                      </button>
+                    </>
+                  ) : null}
+                  {transfer.status === "approved" ? (
+                    <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "complete")}>
+                      Complete
+                    </button>
+                  ) : null}
+                </div>
+              </td>
+            </TableRow>
+          ))}
+        </DataTable>
+      </section>
+
+      {returnTarget ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+          <div className="card-surface w-full max-w-md p-5">
+            <h3 className="mb-1 text-base font-medium">Return asset</h3>
+            <p className="mb-4 text-sm text-secondary">{assetLabel(returnTarget.asset_id)}</p>
+            <div className="grid gap-3">
+              <FormField label="Condition">
+                <select className={inputClass} value={returnCondition} onChange={(event) => setReturnCondition(event.target.value)}>
+                  <option value="good">Good</option>
+                  <option value="fair">Fair</option>
+                  <option value="damaged">Damaged</option>
+                </select>
+              </FormField>
+              <FormField label="Condition notes">
+                <textarea
+                  className={`${inputClass} h-24 py-2`}
+                  value={returnNotes}
+                  onChange={(event) => setReturnNotes(event.target.value)}
+                  placeholder="Any wear, damage, or accessories returned"
+                />
+              </FormField>
+              <div className="flex gap-2">
+                <button className={buttonClass} type="button" onClick={() => submitReturn()}>
+                  Confirm return
+                </button>
+                <button className={secondaryButtonClass} type="button" onClick={() => setReturnTarget(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
-

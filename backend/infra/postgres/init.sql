@@ -142,6 +142,12 @@ CREATE TABLE IF NOT EXISTS audit_items (
   verified_at TIMESTAMPTZ
 );
 
+CREATE TABLE IF NOT EXISTS audit_cycle_auditors (
+  cycle_id BIGINT NOT NULL REFERENCES audit_cycles(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (cycle_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -167,30 +173,5 @@ CREATE INDEX IF NOT EXISTS idx_assets_search ON assets USING gin (to_tsvector('s
 CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
 CREATE INDEX IF NOT EXISTS idx_bookings_resource_slot ON bookings USING gist(resource_id, slot);
 
-INSERT INTO departments(name)
-VALUES ('Engineering'), ('Facilities'), ('Finance')
-ON CONFLICT (name) DO NOTHING;
-
-INSERT INTO users(name, email, password_hash, role, department_id)
-SELECT 'Admin User', 'admin@assetflow.dev', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'admin', d.id
-FROM departments d WHERE d.name = 'Engineering'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO users(name, email, password_hash, role, department_id)
-SELECT 'Priya Shah', 'priya@assetflow.dev', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'employee', d.id
-FROM departments d WHERE d.name = 'Engineering'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO asset_categories(name, custom_fields)
-VALUES ('Laptop', '{"warranty_months": 36}'::jsonb), ('Room', '{}'::jsonb)
-ON CONFLICT (name) DO NOTHING;
-
-INSERT INTO assets(tag, name, category_id, serial_number, location, is_bookable, status)
-SELECT 'AF-0114', 'MacBook Pro 14', c.id, 'MBP-0114', 'Engineering', false, 'available'
-FROM asset_categories c WHERE c.name = 'Laptop'
-ON CONFLICT (tag) DO NOTHING;
-
-INSERT INTO assets(tag, name, category_id, location, is_bookable, status)
-SELECT 'AF-ROOM-B2', 'Room B2', c.id, 'Floor 2', true, 'available'
-FROM asset_categories c WHERE c.name = 'Room'
-ON CONFLICT (tag) DO NOTHING;
+-- Demo data lives in backend/seed.py (run: cd backend && python seed.py).
+-- Keep this file schema-only so first-boot and re-seed stay consistent.

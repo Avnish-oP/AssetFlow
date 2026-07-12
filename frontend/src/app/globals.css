@@ -17,6 +17,9 @@
   --accent-amber-bg: #332405;
   --accent-blue: #3b82f6;
   --accent-blue-bg: #16233f;
+  --radius-card: 10px;
+  --radius-control: 8px;
+  --transition-fast: 150ms ease;
 }
 
 @theme inline {
@@ -37,6 +40,8 @@
   --color-blue: var(--accent-blue);
   --color-blue-bg: var(--accent-blue-bg);
   --font-sans: -apple-system, Inter, Segoe UI, sans-serif;
+  --radius-card: var(--radius-card);
+  --radius-control: var(--radius-control);
 }
 
 * {
@@ -61,3 +66,39 @@ button {
   outline-color: var(--border-strong);
 }
 
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+.card-surface {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.card-surface-hover:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.row-hover {
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.row-hover:hover {
+  background: var(--surface-raised);
+  transform: translateY(-0.5px);
+}

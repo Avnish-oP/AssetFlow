@@ -10,6 +10,7 @@ from models.asset import Asset
 from models.department import Department
 from models.user import User
 from schemas.allocation import AllocationCreate, AllocationReturn
+from services.transitions import assert_transition
 
 
 async def _holder_payload(db: AsyncSession, asset_id: int) -> dict:
@@ -48,6 +49,7 @@ async def create_allocation(db: AsyncSession, payload: AllocationCreate) -> Allo
             },
         )
     allocation = Allocation(**payload.model_dump(), status="active")
+    assert_transition(asset.status, "allocated", "asset")
     asset.status = "allocated"
     db.add(allocation)
     try:
@@ -72,15 +74,37 @@ async def return_allocation(db: AsyncSession, allocation_id: int, payload: Alloc
     allocation = await db.get(Allocation, allocation_id)
     if not allocation:
         raise HTTPException(status_code=404, detail="Allocation not found")
-    if allocation.status != "active":
-        raise HTTPException(status_code=400, detail="Allocation is not active")
+    if allocation.status not in {"active", "overdue"}:
+        raise HTTPException(status_code=400, detail="Allocation is not returnable")
     asset = await db.get(Asset, allocation.asset_id)
+    assert_transition(allocation.status, "returned", "allocation")
     allocation.status = "returned"
     allocation.returned_at = datetime.now(UTC)
     allocation.return_condition_notes = payload.return_condition_notes
     if asset:
-        asset.status = "available"
+        if payload.condition:
+            asset.condition = payload.condition
+        elif payload.return_condition_notes:
+            notes = payload.return_condition_notes.lower()
+            if "damage" in notes or "broken" in notes:
+                asset.condition = "damaged"
+            elif "fair" in notes or "wear" in notes:
+                asset.condition = "fair"
+            else:
+                asset.condition = "good"
+        if asset.status == "allocated":
+            assert_transition(asset.status, "available", "asset")
+            asset.status = "available"
     await db.commit()
     await db.refresh(allocation)
     return allocation
 
+
+async def list_history_for_asset(db: AsyncSession, asset_id: int) -> list[Allocation]:
+    return list(
+        (
+            await db.scalars(
+                select(Allocation).where(Allocation.asset_id == asset_id).order_by(Allocation.allocated_at.desc())
+            )
+        ).all()
+    )
