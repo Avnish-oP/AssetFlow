@@ -38,9 +38,8 @@ async def create_request(db: AsyncSession, payload: MaintenanceCreate, raised_by
         raise HTTPException(status_code=404, detail="Asset not found")
     if asset.status in {"lost", "retired", "disposed"}:
         raise HTTPException(status_code=400, detail=f"Cannot raise maintenance for asset in status {asset.status}")
-
+    # Asset flips to maintenance on approve (not raise) — pre-check that a legal transition exists.
     assert_transition(asset.status, "maintenance", "asset")
-    asset.status = "maintenance"
 
     request = MaintenanceRequest(
         asset_id=payload.asset_id,
@@ -103,6 +102,11 @@ async def advance_status(
 
     if target == "approved":
         request.approved_by = actor_id
+        asset = await db.get(Asset, request.asset_id)
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset not found")
+        assert_transition(asset.status, "maintenance", "asset")
+        asset.status = "maintenance"
     if target == "technician_assigned":
         if not payload.technician_name and not request.technician_name:
             raise HTTPException(status_code=400, detail="technician_name is required")

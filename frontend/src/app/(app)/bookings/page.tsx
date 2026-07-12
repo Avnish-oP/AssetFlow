@@ -272,15 +272,42 @@ export default function BookingsPage() {
         </div>
       </section>
 
-      <DataTable headers={["Resource", "Start", "End", "Status"]}>
+      <DataTable headers={["Resource", "Start", "End", "Status", "Actions"]}>
         {bookings.map((booking) => {
           const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
+          const canCancel = booking.status === "upcoming" || booking.status === "ongoing";
           return (
             <tr key={booking.id}>
               <td className="px-4 py-3 font-medium">{resourceName}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
-              <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
+              <td className="px-4 py-3">
+                <StatusPill value={booking.status} />
+              </td>
+              <td className="px-4 py-3">
+                {canCancel ? (
+                  <button
+                    type="button"
+                    className={secondaryButtonClass}
+                    onClick={async () => {
+                      try {
+                        await apiFetch(`/bookings/${booking.id}/cancel`, { method: "POST" });
+                        setBookings((current) =>
+                          current.map((row) => (row.id === booking.id ? { ...row, status: "cancelled" } : row)),
+                        );
+                        if (resourceId && date) await loadDaySlots(Number(resourceId), date);
+                        showToast("Booking cancelled", "success");
+                      } catch {
+                        showToast("Failed to cancel booking", "error");
+                      }
+                    }}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <span className="text-xs text-muted">—</span>
+                )}
+              </td>
             </tr>
           );
         })}

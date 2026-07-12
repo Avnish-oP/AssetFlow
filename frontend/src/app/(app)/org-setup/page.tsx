@@ -58,8 +58,17 @@ export default function OrgSetupPage() {
 
   async function createDepartment(form: FormData) {
     const name = form.get("name") as string;
+    const parentValue = String(form.get("parent_department_id") || "");
+    const headValue = String(form.get("head_id") || "");
     try {
-      const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name }) });
+      const item = await apiFetch<Department>("/departments", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          parent_department_id: parentValue ? Number(parentValue) : null,
+          head_id: headValue ? Number(headValue) : null,
+        }),
+      });
       setDepartments((current) => [item, ...current]);
       showToast("Department created", "success");
     } catch (error) {
@@ -70,7 +79,7 @@ export default function OrgSetupPage() {
       } else {
         showToast("Failed to create department", "error");
       }
-      throw new Error(); // Re-throw to prevent form reset in child
+      throw new Error();
     }
   }
 
@@ -89,8 +98,15 @@ export default function OrgSetupPage() {
 
   async function createCategory(form: FormData) {
     const name = form.get("name") as string;
+    const fieldKey = String(form.get("field_key") || "").trim();
+    const fieldValue = String(form.get("field_value") || "").trim();
+    const custom_fields: Record<string, string> = {};
+    if (fieldKey) custom_fields[fieldKey] = fieldValue || "";
     try {
-      const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name, custom_fields: {} }) });
+      const item = await apiFetch<Category>("/categories", {
+        method: "POST",
+        body: JSON.stringify({ name, custom_fields }),
+      });
       setCategories((current) => [item, ...current]);
       showToast("Category created", "success");
     } catch (error) {
@@ -164,36 +180,108 @@ export default function OrgSetupPage() {
 
       {tab === "departments" ? (
         <>
-          <SectionForm label="Department name" onSubmit={createDepartment} />
-          <DataTable headers={["Name", "Status", "Actions"]}>
-            {departments.map((department) => (
-              <tr key={department.id}>
-                <td className="px-4 py-3">{department.name}</td>
-                <td className="px-4 py-3">
-                  <StatusPill value={department.status} />
-                </td>
-                <td className="space-x-2 px-4 py-3">
-                  <button className={secondaryButtonClass} onClick={() => void deactivateDepartment(department)}>
-                    {department.status === "active" ? "Deactivate" : "Activate"}
-                  </button>
-                  <button className={secondaryButtonClass} onClick={() => void deleteDepartment(department)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+          <form
+            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const form = event.currentTarget;
+              try {
+                await createDepartment(new FormData(form));
+                form.reset();
+              } catch {
+                /* toast already shown */
+              }
+            }}
+          >
+            <FormField label="Department name">
+              <input className={inputClass} name="name" required />
+            </FormField>
+            <FormField label="Parent department">
+              <select className={inputClass} name="parent_department_id" defaultValue="">
+                <option value="">None</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Department head">
+              <select className={inputClass} name="head_id" defaultValue="">
+                <option value="">Unassigned</option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <button className={`${buttonClass} mt-6`}>Add department</button>
+          </form>
+          <DataTable headers={["Name", "Parent", "Head", "Status", "Actions"]}>
+            {departments.map((department) => {
+              const parent = departments.find((row) => row.id === department.parent_department_id);
+              const head = employees.find((row) => row.id === department.head_id);
+              return (
+                <tr key={department.id}>
+                  <td className="px-4 py-3">{department.name}</td>
+                  <td className="px-4 py-3 text-secondary">{parent?.name ?? "—"}</td>
+                  <td className="px-4 py-3 text-secondary">{head?.name ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <StatusPill value={department.status} />
+                  </td>
+                  <td className="space-x-2 px-4 py-3">
+                    <button className={secondaryButtonClass} onClick={() => void deactivateDepartment(department)}>
+                      {department.status === "active" ? "Deactivate" : "Activate"}
+                    </button>
+                    <button className={secondaryButtonClass} onClick={() => void deleteDepartment(department)}>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </DataTable>
         </>
       ) : null}
 
       {tab === "categories" ? (
         <>
-          <SectionForm label="Category name" onSubmit={createCategory} />
+          <form
+            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const form = event.currentTarget;
+              try {
+                await createCategory(new FormData(form));
+                form.reset();
+              } catch {
+                /* toast already shown */
+              }
+            }}
+          >
+            <FormField label="Category name">
+              <input className={inputClass} name="name" required />
+            </FormField>
+            <FormField label="Custom field key">
+              <input className={inputClass} name="field_key" placeholder="e.g. warranty_months" />
+            </FormField>
+            <FormField label="Custom field value">
+              <input className={inputClass} name="field_value" placeholder="e.g. 24" />
+            </FormField>
+            <button className={`${buttonClass} mt-6`}>Add category</button>
+          </form>
           <DataTable headers={["Name", "Custom fields", "Actions"]}>
             {categories.map((category) => (
               <tr key={category.id}>
                 <td className="px-4 py-3">{category.name}</td>
-                <td className="px-4 py-3 text-secondary">{Object.keys(category.custom_fields).join(", ") || "None"}</td>
+                <td className="px-4 py-3 text-secondary">
+                  {Object.keys(category.custom_fields).length
+                    ? Object.entries(category.custom_fields)
+                        .map(([key, value]) => `${key}: ${String(value)}`)
+                        .join(", ")
+                    : "None"}
+                </td>
                 <td className="px-4 py-3">
                   <button className={secondaryButtonClass} onClick={() => void deleteCategory(category)}>
                     Delete
@@ -274,33 +362,4 @@ export default function OrgSetupPage() {
   );
 }
 
-function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: FormData) => Promise<void> }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  return (
-    <form
-      className="flex max-w-xl items-end gap-3"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        setIsSubmitting(true);
-        try {
-          await onSubmit(new FormData(form));
-          form.reset();
-        } catch (error) {
-          // Ignored: parent handles the toast, we just want to skip form.reset()
-        } finally {
-          setIsSubmitting(false);
-        }
-      }}
-    >
-      <div className="flex-1">
-        <FormField label={label}>
-          <input className={inputClass} name="name" required />
-        </FormField>
-      </div>
-      <button disabled={isSubmitting} className={buttonClass}>
-        {isSubmitting ? "Adding..." : "Add"}
-      </button>
-    </form>
-  );
-}
+
