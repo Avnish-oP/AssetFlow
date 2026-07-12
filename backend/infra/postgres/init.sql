@@ -171,13 +171,14 @@ INSERT INTO departments(name)
 VALUES ('Engineering'), ('Facilities'), ('Finance')
 ON CONFLICT (name) DO NOTHING;
 
+-- Seed password for both demo users: password
 INSERT INTO users(name, email, password_hash, role, department_id)
-SELECT 'Admin User', 'admin@assetflow.local', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'admin', d.id
+SELECT 'Admin User', 'admin@assetflow.com', '$2b$12$CXmofwczCcPh/0sHLlVdde1VX/YrdRQpVHFMXevZnJphTd62ezAPu', 'admin', d.id
 FROM departments d WHERE d.name = 'Engineering'
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users(name, email, password_hash, role, department_id)
-SELECT 'Priya Shah', 'priya@assetflow.local', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'employee', d.id
+SELECT 'Priya Shah', 'priya@assetflow.com', '$2b$12$CXmofwczCcPh/0sHLlVdde1VX/YrdRQpVHFMXevZnJphTd62ezAPu', 'employee', d.id
 FROM departments d WHERE d.name = 'Engineering'
 ON CONFLICT (email) DO NOTHING;
 

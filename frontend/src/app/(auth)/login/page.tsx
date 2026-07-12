@@ -31,7 +31,7 @@ export default function LoginPage() {
         <p className="mt-1 text-sm text-secondary">Sign in to the operations console</p>
         <div className="mt-6 grid gap-4">
           <FormField label="Email">
-            <input className={inputClass} name="email" type="email" defaultValue="admin@assetflow.local" required />
+            <input className={inputClass} name="email" type="email" defaultValue="admin@assetflow.com" required />
           </FormField>
           <FormField label="Password">
             <input className={inputClass} name="password" type="password" defaultValue="password" required />

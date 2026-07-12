@@ -23,7 +23,7 @@ export default function AllocationsPage() {
 
   useEffect(() => {
     apiFetch<Asset[]>("/assets").then(setAssets).catch(() => setAssets([{ id: 1, tag: "AF-0114", name: "MacBook Pro 14", status: "allocated", condition: "good", location: "Engineering", is_bookable: false }]));
-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.local", role: "employee", status: "active" }, { id: 3, name: "Amit Rao", email: "amit@assetflow.local", role: "employee", status: "active" }]));
+    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.com", role: "employee", status: "active" }, { id: 3, name: "Amit Rao", email: "amit@assetflow.com", role: "employee", status: "active" }]));
     apiFetch<Allocation[]>("/allocations").then(setAllocations).catch(() => setAllocations([]));
   }, []);
 

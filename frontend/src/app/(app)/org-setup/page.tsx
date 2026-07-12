@@ -18,7 +18,7 @@ export default function OrgSetupPage() {
   useEffect(() => {
     apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([{ id: 1, name: "Engineering", status: "active" }]));
     apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([{ id: 1, name: "Laptop", custom_fields: { warranty_months: 36 } }]));
-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.local", role: "employee", status: "active" }]));
+    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.com", role: "employee", status: "active" }]));
   }, []);
 
   async function createDepartment(form: FormData) {
