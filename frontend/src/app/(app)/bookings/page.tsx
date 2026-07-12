@@ -135,6 +135,18 @@ export default function BookingsPage() {
     }
   }
 
+  async function cancelBooking(booking: Booking) {
+    if (booking.status === "cancelled" || booking.status === "completed") return;
+    try {
+      const updated = await apiFetch<Booking>(`/bookings/${booking.id}/cancel`, { method: "POST" });
+      setBookings((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      if (resourceId) await loadDaySlots(Number(resourceId), date);
+      showToast("Booking cancelled", "success");
+    } catch {
+      showToast("Failed to cancel booking", "error");
+    }
+  }
+
   function selectHour(hour: number) {
     setStart(toTimeValue(hour));
     setEnd(toTimeValue(hour + 1));
@@ -286,22 +298,7 @@ export default function BookingsPage() {
               </td>
               <td className="px-4 py-3">
                 {canCancel ? (
-                  <button
-                    type="button"
-                    className={secondaryButtonClass}
-                    onClick={async () => {
-                      try {
-                        await apiFetch(`/bookings/${booking.id}/cancel`, { method: "POST" });
-                        setBookings((current) =>
-                          current.map((row) => (row.id === booking.id ? { ...row, status: "cancelled" } : row)),
-                        );
-                        if (resourceId && date) await loadDaySlots(Number(resourceId), date);
-                        showToast("Booking cancelled", "success");
-                      } catch {
-                        showToast("Failed to cancel booking", "error");
-                      }
-                    }}
-                  >
+                  <button type="button" className={secondaryButtonClass} onClick={() => void cancelBooking(booking)}>
                     Cancel
                   </button>
                 ) : (

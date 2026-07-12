@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.asset import Asset
 from models.booking import Booking
 from schemas.booking import BookingCreate
-from services.notify import log_activity, notify_roles
+from services.notify import create_notification, log_activity, notify_roles
+from services.transitions import assert_transition
 
 
 async def _conflict_payload(db: AsyncSession, resource_id: int, start, end) -> dict:
@@ -55,6 +56,14 @@ async def create_booking(db: AsyncSession, payload: BookingCreate, user_id: int)
     try:
         await db.flush()
         await log_activity(db, user_id, "booked", "booking", booking.id, {"resource_id": payload.resource_id})
+        await create_notification(
+            db,
+            user_id,
+            type="booking_confirmed",
+            message=f"Booking confirmed: {asset.tag} / {asset.name}",
+            entity_type="booking",
+            entity_id=booking.id,
+        )
         await notify_roles(
             db,
             ("admin", "asset_manager"),
@@ -62,6 +71,7 @@ async def create_booking(db: AsyncSession, payload: BookingCreate, user_id: int)
             f"{asset.tag} booked",
             "booking",
             booking.id,
+            exclude_user_id=user_id,
         )
         await db.commit()
     except (IntegrityError, DBAPIError) as exc:
@@ -74,5 +84,29 @@ async def create_booking(db: AsyncSession, payload: BookingCreate, user_id: int)
             }
         )
         raise HTTPException(status_code=409, detail=detail) from exc
+    await db.refresh(booking)
+    return booking
+
+
+async def cancel_booking(db: AsyncSession, booking_id: int, actor_id: int | None = None) -> Booking:
+    booking = await db.get(Booking, booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.status == "cancelled":
+        return booking
+    assert_transition(booking.status, "cancelled", "booking")
+    booking.status = "cancelled"
+    asset = await db.get(Asset, booking.resource_id)
+    label = asset.tag if asset else f"resource #{booking.resource_id}"
+    await log_activity(db, actor_id, "booking_cancelled", "booking", booking.id)
+    await create_notification(
+        db,
+        booking.booked_by,
+        type="booking_cancelled",
+        message=f"Booking cancelled: {label}",
+        entity_type="booking",
+        entity_id=booking.id,
+    )
+    await db.commit()
     await db.refresh(booking)
     return booking

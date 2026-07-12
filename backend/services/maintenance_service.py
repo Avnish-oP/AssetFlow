@@ -8,7 +8,7 @@ from models.allocation import Allocation
 from models.asset import Asset
 from models.maintenance import MaintenanceRequest
 from schemas.maintenance import MaintenanceCreate, MaintenanceResponse, MaintenanceStatusUpdate
-from services.notify import log_activity, notify_roles
+from services.notify import create_notification, log_activity, notify_roles, notify_user_ids
 from services.transitions import assert_transition
 
 KANBAN_COLUMNS = ["pending", "approved", "technician_assigned", "in_progress", "resolved"]
@@ -107,6 +107,32 @@ async def advance_status(
             raise HTTPException(status_code=404, detail="Asset not found")
         assert_transition(asset.status, "maintenance", "asset")
         asset.status = "maintenance"
+        await notify_user_ids(
+            db,
+            [request.raised_by],
+            "maintenance_approved",
+            f"Maintenance approved for {asset.tag}",
+            "maintenance",
+            request.id,
+        )
+    if target == "rejected":
+        asset = await db.get(Asset, request.asset_id)
+        label = asset.tag if asset else f"asset #{request.asset_id}"
+        if asset and asset.status == "maintenance":
+            active = await db.scalar(
+                select(Allocation).where(Allocation.asset_id == asset.id, Allocation.status == "active")
+            )
+            restore = "allocated" if active else "available"
+            assert_transition(asset.status, restore, "asset")
+            asset.status = restore
+        await notify_user_ids(
+            db,
+            [request.raised_by],
+            "maintenance_rejected",
+            f"Maintenance rejected for {label}",
+            "maintenance",
+            request.id,
+        )
     if target == "technician_assigned":
         if not payload.technician_name and not request.technician_name:
             raise HTTPException(status_code=400, detail="technician_name is required")
@@ -126,6 +152,14 @@ async def advance_status(
         await notify_roles(
             db,
             ("admin", "asset_manager"),
+            "maintenance_resolved",
+            f"Maintenance #{request.id} resolved",
+            "maintenance",
+            request.id,
+        )
+        await notify_user_ids(
+            db,
+            [request.raised_by],
             "maintenance_resolved",
             f"Maintenance #{request.id} resolved",
             "maintenance",

@@ -1,0 +1,1073 @@
+{
+  "version": 1,
+  "exported_at": "2026-07-12T08:58:18Z",
+  "note": "Passwords are re-hashed to 'password' on seed load; password_hash in this file is ignored.",
+  "tables": {
+    "departments": [
+      {
+        "id": 1,
+        "name": "Engineering",
+        "head_id": 3,
+        "parent_department_id": null,
+        "status": "active"
+      },
+      {
+        "id": 2,
+        "name": "Facilities",
+        "head_id": 2,
+        "parent_department_id": null,
+        "status": "active"
+      },
+      {
+        "id": 3,
+        "name": "Finance",
+        "head_id": null,
+        "parent_department_id": null,
+        "status": "active"
+      }
+    ],
+    "users": [
+      {
+        "id": 1,
+        "name": "Admin User",
+        "email": "admin@assetflow.dev",
+        "password_hash": "<rehashed-on-seed>",
+        "role": "admin",
+        "department_id": 1,
+        "status": "active",
+        "created_at": "2026-07-12T08:21:37.438895+00:00"
+      },
+      {
+        "id": 2,
+        "name": "Meera Kapoor",
+        "email": "meera@assetflow.dev",
+        "password_hash": "<rehashed-on-seed>",
+        "role": "asset_manager",
+        "department_id": 2,
+        "status": "active",
+        "created_at": "2026-07-12T08:21:37.438895+00:00"
+      },
+      {
+        "id": 3,
+        "name": "Ravi Menon",
+        "email": "ravi@assetflow.dev",
+        "password_hash": "<rehashed-on-seed>",
+        "role": "dept_head",
+        "department_id": 1,
+        "status": "active",
+        "created_at": "2026-07-12T08:21:37.438895+00:00"
+      },
+      {
+        "id": 4,
+        "name": "Priya Shah",
+        "email": "priya@assetflow.dev",
+        "password_hash": "<rehashed-on-seed>",
+        "role": "employee",
+        "department_id": 1,
+        "status": "active",
+        "created_at": "2026-07-12T08:21:37.438895+00:00"
+      },
+      {
+        "id": 5,
+        "name": "Amit Rao",
+        "email": "amit@assetflow.dev",
+        "password_hash": "<rehashed-on-seed>",
+        "role": "employee",
+        "department_id": 1,
+        "status": "active",
+        "created_at": "2026-07-12T08:21:37.438895+00:00"
+      },
+      {
+        "id": 6,
+        "name": "Neha Iyer",
+        "email": "neha@assetflow.dev",
+        "password_hash": "<rehashed-on-seed>",
+        "role": "employee",
+        "department_id": 2,
+        "status": "active",
+        "created_at": "2026-07-12T08:21:37.438895+00:00"
+      }
+    ],
+    "asset_categories": [
+      {
+        "id": 1,
+        "name": "Laptop",
+        "custom_fields": {
+          "warranty_months": 36
+        }
+      },
+      {
+        "id": 2,
+        "name": "Room",
+        "custom_fields": {}
+      },
+      {
+        "id": 3,
+        "name": "Projector",
+        "custom_fields": {}
+      }
+    ],
+    "assets": [
+      {
+        "id": 1,
+        "tag": "AF-0114",
+        "name": "MacBook Pro 14",
+        "category_id": 1,
+        "serial_number": "MBP-0114",
+        "acquisition_date": "2024-03-15",
+        "acquisition_cost": "1899.00",
+        "condition": "good",
+        "location": "Engineering",
+        "is_bookable": false,
+        "photo_url": null,
+        "status": "allocated"
+      },
+      {
+        "id": 2,
+        "tag": "AF-0062",
+        "name": "Dell Latitude 5440",
+        "category_id": 1,
+        "serial_number": "DLL-0062",
+        "acquisition_date": "2023-08-01",
+        "acquisition_cost": "1199.00",
+        "condition": "good",
+        "location": "Engineering",
+        "is_bookable": false,
+        "photo_url": null,
+        "status": "lost"
+      },
+      {
+        "id": 3,
+        "tag": "AF-0108",
+        "name": "Epson Projector",
+        "category_id": 3,
+        "serial_number": "EPS-0108",
+        "acquisition_date": "2022-11-20",
+        "acquisition_cost": "650.00",
+        "condition": "fair",
+        "location": "Facilities",
+        "is_bookable": true,
+        "photo_url": null,
+        "status": "available"
+      },
+      {
+        "id": 4,
+        "tag": "AF-ROOM-B2",
+        "name": "Room B2",
+        "category_id": 2,
+        "serial_number": null,
+        "acquisition_date": null,
+        "acquisition_cost": null,
+        "condition": "good",
+        "location": "Floor 2",
+        "is_bookable": true,
+        "photo_url": null,
+        "status": "available"
+      },
+      {
+        "id": 5,
+        "tag": "AF-0200",
+        "name": "Demo Monitor",
+        "category_id": null,
+        "serial_number": null,
+        "acquisition_date": null,
+        "acquisition_cost": null,
+        "condition": "good",
+        "location": "Lab",
+        "is_bookable": false,
+        "photo_url": null,
+        "status": "available"
+      },
+      {
+        "id": 6,
+        "tag": "AF-0201",
+        "name": "Demo Monitor",
+        "category_id": null,
+        "serial_number": null,
+        "acquisition_date": null,
+        "acquisition_cost": null,
+        "condition": "good",
+        "location": "Lab",
+        "is_bookable": false,
+        "photo_url": null,
+        "status": "available"
+      }
+    ],
+    "allocations": [
+      {
+        "id": 1,
+        "asset_id": 1,
+        "holder_user_id": 4,
+        "holder_department_id": null,
+        "allocated_at": "2026-07-12T08:32:30.795597+00:00",
+        "expected_return_date": null,
+        "returned_at": "2026-07-12T08:32:31.506211+00:00",
+        "return_condition_notes": "Transferred to user 5",
+        "status": "returned"
+      },
+      {
+        "id": 2,
+        "asset_id": 1,
+        "holder_user_id": 5,
+        "holder_department_id": null,
+        "allocated_at": "2026-07-12T08:32:30.924423+00:00",
+        "expected_return_date": null,
+        "returned_at": "2026-07-12T08:33:25.312250+00:00",
+        "return_condition_notes": "reset",
+        "status": "returned"
+      },
+      {
+        "id": 3,
+        "asset_id": 1,
+        "holder_user_id": 4,
+        "holder_department_id": null,
+        "allocated_at": "2026-07-12T08:33:25.737164+00:00",
+        "expected_return_date": null,
+        "returned_at": "2026-07-12T08:33:25.472129+00:00",
+        "return_condition_notes": "Transferred to user 5",
+        "status": "returned"
+      },
+      {
+        "id": 4,
+        "asset_id": 1,
+        "holder_user_id": 5,
+        "holder_department_id": null,
+        "allocated_at": "2026-07-12T08:33:25.869456+00:00",
+        "expected_return_date": null,
+        "returned_at": null,
+        "return_condition_notes": null,
+        "status": "active"
+      }
+    ],
+    "transfer_requests": [
+      {
+        "id": 1,
+        "asset_id": 1,
+        "from_holder_id": 4,
+        "to_holder_id": 5,
+        "reason": "demo transfer",
+        "status": "completed",
+        "requested_by": 1,
+        "approved_by": 1,
+        "created_at": "2026-07-12T08:32:30.856877+00:00"
+      },
+      {
+        "id": 2,
+        "asset_id": 1,
+        "from_holder_id": 4,
+        "to_holder_id": 5,
+        "reason": "demo transfer",
+        "status": "completed",
+        "requested_by": 1,
+        "approved_by": 1,
+        "created_at": "2026-07-12T08:33:25.790990+00:00"
+      }
+    ],
+    "bookings": [
+      {
+        "id": 1,
+        "resource_id": 4,
+        "booked_by": 1,
+        "slot": {
+          "start": "2026-08-01T03:30:00+00:00",
+          "end": "2026-08-01T04:30:00+00:00",
+          "bounds": "[)"
+        },
+        "status": "upcoming",
+        "created_at": "2026-07-12T08:32:30.972077+00:00"
+      },
+      {
+        "id": 3,
+        "resource_id": 4,
+        "booked_by": 1,
+        "slot": {
+          "start": "2026-08-01T04:30:00+00:00",
+          "end": "2026-08-01T05:30:00+00:00",
+          "bounds": "[)"
+        },
+        "status": "upcoming",
+        "created_at": "2026-07-12T08:32:31.042254+00:00"
+      }
+    ],
+    "maintenance_requests": [
+      {
+        "id": 1,
+        "asset_id": 5,
+        "raised_by": 1,
+        "issue_description": "won't power on",
+        "priority": "high",
+        "photo_url": null,
+        "status": "resolved",
+        "approved_by": 1,
+        "technician_name": "R Varma",
+        "resolved_at": "2026-07-12T08:32:31.786224+00:00",
+        "created_at": "2026-07-12T08:32:31.107254+00:00"
+      },
+      {
+        "id": 2,
+        "asset_id": 6,
+        "raised_by": 1,
+        "issue_description": "won't power on",
+        "priority": "high",
+        "photo_url": null,
+        "status": "resolved",
+        "approved_by": 1,
+        "technician_name": "R Varma",
+        "resolved_at": "2026-07-12T08:33:25.778588+00:00",
+        "created_at": "2026-07-12T08:33:26.038319+00:00"
+      }
+    ],
+    "audit_cycles": [
+      {
+        "id": 2,
+        "name": "Q Demo Audit",
+        "scope_department_id": null,
+        "scope_location": null,
+        "start_date": "2026-07-01",
+        "end_date": "2026-07-31",
+        "status": "closed",
+        "created_by": 1
+      }
+    ],
+    "audit_cycle_auditors": [
+      {
+        "cycle_id": 2,
+        "user_id": 4
+      }
+    ],
+    "audit_items": [
+      {
+        "id": 1,
+        "cycle_id": 2,
+        "asset_id": 2,
+        "expected_location": "Engineering",
+        "verification_status": "missing",
+        "notes": "demo",
+        "verified_by": 1,
+        "verified_at": "2026-07-12T08:33:25.953641+00:00"
+      },
+      {
+        "id": 2,
+        "cycle_id": 2,
+        "asset_id": 3,
+        "expected_location": "Facilities",
+        "verification_status": "verified",
+        "notes": "demo",
+        "verified_by": 1,
+        "verified_at": "2026-07-12T08:33:26.011644+00:00"
+      },
+      {
+        "id": 3,
+        "cycle_id": 2,
+        "asset_id": 4,
+        "expected_location": "Floor 2",
+        "verification_status": "verified",
+        "notes": "demo",
+        "verified_by": 1,
+        "verified_at": "2026-07-12T08:33:26.041359+00:00"
+      },
+      {
+        "id": 4,
+        "cycle_id": 2,
+        "asset_id": 5,
+        "expected_location": "Lab",
+        "verification_status": "verified",
+        "notes": "demo",
+        "verified_by": 1,
+        "verified_at": "2026-07-12T08:33:26.072361+00:00"
+      },
+      {
+        "id": 5,
+        "cycle_id": 2,
+        "asset_id": 1,
+        "expected_location": "Engineering",
+        "verification_status": "verified",
+        "notes": "demo",
+        "verified_by": 1,
+        "verified_at": "2026-07-12T08:33:26.100359+00:00"
+      },
+      {
+        "id": 6,
+        "cycle_id": 2,
+        "asset_id": 6,
+        "expected_location": "Lab",
+        "verification_status": "verified",
+        "notes": "demo",
+        "verified_by": 1,
+        "verified_at": "2026-07-12T08:33:26.136946+00:00"
+      }
+    ],
+    "notifications": [
+      {
+        "id": 1,
+        "user_id": 4,
+        "type": "allocation",
+        "message": "You were allocated AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "allocation",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.795597+00:00"
+      },
+      {
+        "id": 2,
+        "user_id": 1,
+        "type": "allocation",
+        "message": "AF-0114 (MacBook Pro 14) allocated",
+        "related_entity_type": "allocation",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.795597+00:00"
+      },
+      {
+        "id": 3,
+        "user_id": 2,
+        "type": "allocation",
+        "message": "AF-0114 (MacBook Pro 14) allocated",
+        "related_entity_type": "allocation",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.795597+00:00"
+      },
+      {
+        "id": 4,
+        "user_id": 1,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.856877+00:00"
+      },
+      {
+        "id": 5,
+        "user_id": 2,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.856877+00:00"
+      },
+      {
+        "id": 6,
+        "user_id": 5,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.856877+00:00"
+      },
+      {
+        "id": 7,
+        "user_id": 4,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.856877+00:00"
+      },
+      {
+        "id": 8,
+        "user_id": 1,
+        "type": "transfer_approved",
+        "message": "Transfer #1 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.889597+00:00"
+      },
+      {
+        "id": 9,
+        "user_id": 5,
+        "type": "transfer_approved",
+        "message": "Transfer #1 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.889597+00:00"
+      },
+      {
+        "id": 10,
+        "user_id": 4,
+        "type": "transfer_approved",
+        "message": "Transfer #1 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.889597+00:00"
+      },
+      {
+        "id": 11,
+        "user_id": 1,
+        "type": "transfer_approved",
+        "message": "Transfer #1 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.889597+00:00"
+      },
+      {
+        "id": 12,
+        "user_id": 2,
+        "type": "transfer_approved",
+        "message": "Transfer #1 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.889597+00:00"
+      },
+      {
+        "id": 13,
+        "user_id": 1,
+        "type": "transfer_completed",
+        "message": "Transfer #1 completed — asset reallocated",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.924423+00:00"
+      },
+      {
+        "id": 14,
+        "user_id": 5,
+        "type": "transfer_completed",
+        "message": "Transfer #1 completed — asset reallocated",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.924423+00:00"
+      },
+      {
+        "id": 15,
+        "user_id": 4,
+        "type": "transfer_completed",
+        "message": "Transfer #1 completed — asset reallocated",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.924423+00:00"
+      },
+      {
+        "id": 16,
+        "user_id": 1,
+        "type": "transfer_completed",
+        "message": "Transfer #1 completed",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.924423+00:00"
+      },
+      {
+        "id": 17,
+        "user_id": 2,
+        "type": "transfer_completed",
+        "message": "Transfer #1 completed",
+        "related_entity_type": "transfer",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.924423+00:00"
+      },
+      {
+        "id": 18,
+        "user_id": 1,
+        "type": "booking",
+        "message": "AF-ROOM-B2 booked",
+        "related_entity_type": "booking",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.972077+00:00"
+      },
+      {
+        "id": 19,
+        "user_id": 2,
+        "type": "booking",
+        "message": "AF-ROOM-B2 booked",
+        "related_entity_type": "booking",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:30.972077+00:00"
+      },
+      {
+        "id": 20,
+        "user_id": 1,
+        "type": "booking",
+        "message": "AF-ROOM-B2 booked",
+        "related_entity_type": "booking",
+        "related_entity_id": 3,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:31.042254+00:00"
+      },
+      {
+        "id": 21,
+        "user_id": 2,
+        "type": "booking",
+        "message": "AF-ROOM-B2 booked",
+        "related_entity_type": "booking",
+        "related_entity_id": 3,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:31.042254+00:00"
+      },
+      {
+        "id": 22,
+        "user_id": 1,
+        "type": "maintenance",
+        "message": "Maintenance raised for AF-0200: won't power on",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:31.107254+00:00"
+      },
+      {
+        "id": 23,
+        "user_id": 2,
+        "type": "maintenance",
+        "message": "Maintenance raised for AF-0200: won't power on",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:31.107254+00:00"
+      },
+      {
+        "id": 24,
+        "user_id": 1,
+        "type": "maintenance_resolved",
+        "message": "Maintenance #1 resolved",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:31.216849+00:00"
+      },
+      {
+        "id": 25,
+        "user_id": 2,
+        "type": "maintenance_resolved",
+        "message": "Maintenance #1 resolved",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:32:31.216849+00:00"
+      },
+      {
+        "id": 26,
+        "user_id": 1,
+        "type": "return",
+        "message": "AF-0114 (MacBook Pro 14) returned",
+        "related_entity_type": "allocation",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.697543+00:00"
+      },
+      {
+        "id": 27,
+        "user_id": 2,
+        "type": "return",
+        "message": "AF-0114 (MacBook Pro 14) returned",
+        "related_entity_type": "allocation",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.697543+00:00"
+      },
+      {
+        "id": 28,
+        "user_id": 4,
+        "type": "allocation",
+        "message": "You were allocated AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "allocation",
+        "related_entity_id": 3,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.737164+00:00"
+      },
+      {
+        "id": 29,
+        "user_id": 1,
+        "type": "allocation",
+        "message": "AF-0114 (MacBook Pro 14) allocated",
+        "related_entity_type": "allocation",
+        "related_entity_id": 3,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.737164+00:00"
+      },
+      {
+        "id": 30,
+        "user_id": 2,
+        "type": "allocation",
+        "message": "AF-0114 (MacBook Pro 14) allocated",
+        "related_entity_type": "allocation",
+        "related_entity_id": 3,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.737164+00:00"
+      },
+      {
+        "id": 31,
+        "user_id": 1,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.790990+00:00"
+      },
+      {
+        "id": 32,
+        "user_id": 2,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.790990+00:00"
+      },
+      {
+        "id": 33,
+        "user_id": 5,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.790990+00:00"
+      },
+      {
+        "id": 34,
+        "user_id": 4,
+        "type": "transfer_requested",
+        "message": "Transfer requested for AF-0114 (MacBook Pro 14)",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.790990+00:00"
+      },
+      {
+        "id": 35,
+        "user_id": 1,
+        "type": "transfer_approved",
+        "message": "Transfer #2 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.824527+00:00"
+      },
+      {
+        "id": 36,
+        "user_id": 5,
+        "type": "transfer_approved",
+        "message": "Transfer #2 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.824527+00:00"
+      },
+      {
+        "id": 37,
+        "user_id": 4,
+        "type": "transfer_approved",
+        "message": "Transfer #2 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.824527+00:00"
+      },
+      {
+        "id": 38,
+        "user_id": 1,
+        "type": "transfer_approved",
+        "message": "Transfer #2 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.824527+00:00"
+      },
+      {
+        "id": 39,
+        "user_id": 2,
+        "type": "transfer_approved",
+        "message": "Transfer #2 approved",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.824527+00:00"
+      },
+      {
+        "id": 40,
+        "user_id": 1,
+        "type": "transfer_completed",
+        "message": "Transfer #2 completed — asset reallocated",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.869456+00:00"
+      },
+      {
+        "id": 41,
+        "user_id": 5,
+        "type": "transfer_completed",
+        "message": "Transfer #2 completed — asset reallocated",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.869456+00:00"
+      },
+      {
+        "id": 42,
+        "user_id": 4,
+        "type": "transfer_completed",
+        "message": "Transfer #2 completed — asset reallocated",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.869456+00:00"
+      },
+      {
+        "id": 43,
+        "user_id": 1,
+        "type": "transfer_completed",
+        "message": "Transfer #2 completed",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.869456+00:00"
+      },
+      {
+        "id": 44,
+        "user_id": 2,
+        "type": "transfer_completed",
+        "message": "Transfer #2 completed",
+        "related_entity_type": "transfer",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:25.869456+00:00"
+      },
+      {
+        "id": 45,
+        "user_id": 1,
+        "type": "maintenance",
+        "message": "Maintenance raised for AF-0201: won't power on",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:26.038319+00:00"
+      },
+      {
+        "id": 46,
+        "user_id": 2,
+        "type": "maintenance",
+        "message": "Maintenance raised for AF-0201: won't power on",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:26.038319+00:00"
+      },
+      {
+        "id": 47,
+        "user_id": 1,
+        "type": "maintenance_resolved",
+        "message": "Maintenance #2 resolved",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:26.190154+00:00"
+      },
+      {
+        "id": 48,
+        "user_id": 2,
+        "type": "maintenance_resolved",
+        "message": "Maintenance #2 resolved",
+        "related_entity_type": "maintenance",
+        "related_entity_id": 2,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:26.190154+00:00"
+      },
+      {
+        "id": 49,
+        "user_id": 1,
+        "type": "audit_missing",
+        "message": "AF-0062 marked missing in audit #2",
+        "related_entity_type": "audit_item",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:26.365243+00:00"
+      },
+      {
+        "id": 50,
+        "user_id": 2,
+        "type": "audit_missing",
+        "message": "AF-0062 marked missing in audit #2",
+        "related_entity_type": "audit_item",
+        "related_entity_id": 1,
+        "is_read": false,
+        "created_at": "2026-07-12T08:33:26.365243+00:00"
+      }
+    ],
+    "activity_logs": [
+      {
+        "id": 1,
+        "actor_id": null,
+        "action": "allocated",
+        "entity_type": "allocation",
+        "entity_id": 1,
+        "metadata": {
+          "asset_id": 1
+        },
+        "created_at": "2026-07-12T08:32:30.795597+00:00"
+      },
+      {
+        "id": 2,
+        "actor_id": 1,
+        "action": "transfer_requested",
+        "entity_type": "transfer",
+        "entity_id": 1,
+        "metadata": {
+          "asset_id": 1
+        },
+        "created_at": "2026-07-12T08:32:30.856877+00:00"
+      },
+      {
+        "id": 3,
+        "actor_id": 1,
+        "action": "transfer_approved",
+        "entity_type": "transfer",
+        "entity_id": 1,
+        "metadata": {},
+        "created_at": "2026-07-12T08:32:30.889597+00:00"
+      },
+      {
+        "id": 4,
+        "actor_id": 1,
+        "action": "transfer_completed",
+        "entity_type": "transfer",
+        "entity_id": 1,
+        "metadata": {},
+        "created_at": "2026-07-12T08:32:30.924423+00:00"
+      },
+      {
+        "id": 5,
+        "actor_id": 1,
+        "action": "booked",
+        "entity_type": "booking",
+        "entity_id": 1,
+        "metadata": {
+          "resource_id": 4
+        },
+        "created_at": "2026-07-12T08:32:30.972077+00:00"
+      },
+      {
+        "id": 6,
+        "actor_id": 1,
+        "action": "booked",
+        "entity_type": "booking",
+        "entity_id": 3,
+        "metadata": {
+          "resource_id": 4
+        },
+        "created_at": "2026-07-12T08:32:31.042254+00:00"
+      },
+      {
+        "id": 7,
+        "actor_id": 1,
+        "action": "maintenance_raised",
+        "entity_type": "maintenance",
+        "entity_id": 1,
+        "metadata": {
+          "asset_id": 5
+        },
+        "created_at": "2026-07-12T08:32:31.107254+00:00"
+      },
+      {
+        "id": 8,
+        "actor_id": 1,
+        "action": "maintenance_resolved",
+        "entity_type": "maintenance",
+        "entity_id": 1,
+        "metadata": {},
+        "created_at": "2026-07-12T08:32:31.216849+00:00"
+      },
+      {
+        "id": 9,
+        "actor_id": null,
+        "action": "returned",
+        "entity_type": "allocation",
+        "entity_id": 2,
+        "metadata": {
+          "asset_id": 1
+        },
+        "created_at": "2026-07-12T08:33:25.697543+00:00"
+      },
+      {
+        "id": 10,
+        "actor_id": null,
+        "action": "allocated",
+        "entity_type": "allocation",
+        "entity_id": 3,
+        "metadata": {
+          "asset_id": 1
+        },
+        "created_at": "2026-07-12T08:33:25.737164+00:00"
+      },
+      {
+        "id": 11,
+        "actor_id": 1,
+        "action": "transfer_requested",
+        "entity_type": "transfer",
+        "entity_id": 2,
+        "metadata": {
+          "asset_id": 1
+        },
+        "created_at": "2026-07-12T08:33:25.790990+00:00"
+      },
+      {
+        "id": 12,
+        "actor_id": 1,
+        "action": "transfer_approved",
+        "entity_type": "transfer",
+        "entity_id": 2,
+        "metadata": {},
+        "created_at": "2026-07-12T08:33:25.824527+00:00"
+      },
+      {
+        "id": 13,
+        "actor_id": 1,
+        "action": "transfer_completed",
+        "entity_type": "transfer",
+        "entity_id": 2,
+        "metadata": {},
+        "created_at": "2026-07-12T08:33:25.869456+00:00"
+      },
+      {
+        "id": 14,
+        "actor_id": 1,
+        "action": "maintenance_raised",
+        "entity_type": "maintenance",
+        "entity_id": 2,
+        "metadata": {
+          "asset_id": 6
+        },
+        "created_at": "2026-07-12T08:33:26.038319+00:00"
+      },
+      {
+        "id": 15,
+        "actor_id": 1,
+        "action": "maintenance_resolved",
+        "entity_type": "maintenance",
+        "entity_id": 2,
+        "metadata": {},
+        "created_at": "2026-07-12T08:33:26.190154+00:00"
+      },
+      {
+        "id": 16,
+        "actor_id": 1,
+        "action": "marked_missing",
+        "entity_type": "audit_item",
+        "entity_id": 1,
+        "metadata": {
+          "tag": "AF-0062",
+          "asset_id": 2
+        },
+        "created_at": "2026-07-12T08:33:26.365243+00:00"
+      }
+    ]
+  },
+  "sequences": {
+    "asset_tag_seq": 201
+  }
+}
