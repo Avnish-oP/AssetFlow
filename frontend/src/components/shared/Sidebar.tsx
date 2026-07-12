@@ -176,30 +176,32 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-line p-4">
-        <div className="mb-3">
-          <div className="mb-1.5 text-[11px] text-muted">Theme</div>
-          <ThemeSwitcher compact />
-        </div>
         <div className="flex items-center gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-bg text-xs font-semibold text-green">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-bg text-[11px] font-bold text-green ring-1 ring-green/20">
             {initials(user?.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm text-primary">{user?.name ?? "Demo user"}</div>
-            <span className="mt-0.5 inline-flex rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] text-secondary">
+            <div className="truncate text-sm font-medium text-primary leading-tight">{user?.name ?? "Demo user"}</div>
+            <div className="mt-0.5 truncate text-xs text-secondary">
               {user?.role ?? "employee"}
-            </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-secondary">
+            <ThemeSwitcher compact />
+            <button
+              className="hover:text-primary transition flex items-center justify-center"
+              title="Sign out"
+              onClick={() => {
+                logout();
+                router.push("/login");
+              }}
+            >
+              <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" aria-hidden>
+                <path d="M6 13.5H3a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h3M10.5 11.5 14 8l-3.5-3.5M14 8H5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
-        <button
-          className="mt-3 text-xs text-secondary hover:text-primary"
-          onClick={() => {
-            logout();
-            router.push("/login");
-          }}
-        >
-          Sign out
-        </button>
       </div>
       </aside>
     </>
