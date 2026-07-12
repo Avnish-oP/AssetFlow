@@ -1,0 +1,80 @@
+name: assetflow
+
+# Infra only — postgres, redis, minio.
+# FastAPI is NOT containerized here on purpose: run it locally with `uvicorn app.main:app --reload`
+# during the build so hot-reload stays fast. Dockerize it later, once the API is stable
+# (add an `api` service here + a Dockerfile in apps/api when that happens).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: assetflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-assetflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assetflow}
+      POSTGRES_DB: ${POSTGRES_DB:-assetflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Runs once, only on first container creation (empty data dir) — enables the
+      # extensions the schema in README.md §4 depends on (btree_gist for the booking
+      # exclusion constraint, pgcrypto for gen_random_uuid()).
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-assetflow} -d ${POSTGRES_DB:-assetflow}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: assetflow-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: assetflow-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-assetflow}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-assetflow123}
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000" # S3 API — this is what the FastAPI app talks to
+      - "${MINIO_CONSOLE_PORT:-9001}:9001" # web console — http://localhost:9001
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot helper: creates the asset bucket and makes objects in it publicly
+  # downloadable (fine for a hackathon demo — photos need to render in <img> tags
+  # without the frontend juggling presigned GET urls everywhere). Runs once and exits;
+  # `docker compose up` will show it as "exited (0)" — that's expected, not a failure.
+  minio-init:
+    image: minio/mc:latest
+    container_name: assetflow-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c " mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-assetflow} ${MINIO_ROOT_PASSWORD:-assetflow123} && mc mb -p local/${MINIO_BUCKET:-assetflow-assets} && mc anonymous set download local/${MINIO_BUCKET:-assetflow-assets} && echo 'bucket ready: ${MINIO_BUCKET:-assetflow-assets}' "
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
