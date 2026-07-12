@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <main className="ml-[220px] min-h-screen bg-bg p-6">{children}</main>
+      <main className="min-h-screen bg-bg px-4 py-5 sm:px-6 lg:ml-[248px] lg:p-8">{children}</main>
     </>
   );
 }

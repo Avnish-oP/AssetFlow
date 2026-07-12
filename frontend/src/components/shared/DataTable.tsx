@@ -6,8 +6,8 @@ export function DataTable({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
-      <table className="w-full border-collapse text-left text-sm">
+    <div className="overflow-x-auto rounded-lg border border-line bg-surface">
+      <table className="min-w-[480px] w-full border-collapse text-left text-sm">
         <thead>
           <tr className="border-b border-line text-xs text-secondary">
             {headers.map((header) => (
