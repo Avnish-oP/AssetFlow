@@ -173,5 +173,19 @@ CREATE INDEX IF NOT EXISTS idx_assets_search ON assets USING gin (to_tsvector('s
 CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);
 CREATE INDEX IF NOT EXISTS idx_bookings_resource_slot ON bookings USING gist(resource_id, slot);
 
+CREATE TABLE IF NOT EXISTS resource_requests (
+  id BIGSERIAL PRIMARY KEY,
+  asset_id BIGINT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+  requested_by BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  reviewed_by BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  review_notes TEXT,
+  expected_return_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  reviewed_at TIMESTAMPTZ
+);
+
 -- Demo data lives in backend/seed.py (run: cd backend && python seed.py).
 -- Keep this file schema-only so first-boot and re-seed stay consistent.

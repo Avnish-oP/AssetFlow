@@ -16,7 +16,9 @@ export type Capability =
   | "audits"
   | "reports"
   | "notifications"
-  | "dashboard_kpis";
+  | "dashboard_kpis"
+  | "resource_request"
+  | "resource_request_review";
 
 const MATRIX: Record<Capability, AppRole[]> = {
   org_setup: ["admin", "asset_manager"],
@@ -33,6 +35,8 @@ const MATRIX: Record<Capability, AppRole[]> = {
   reports: ["admin", "asset_manager", "dept_head"],
   notifications: ["admin", "asset_manager", "dept_head", "employee"],
   dashboard_kpis: ["admin", "asset_manager", "dept_head"],
+  resource_request: ["admin", "asset_manager", "dept_head", "employee"],
+  resource_request_review: ["admin", "asset_manager"],
 };
 
 /** Nav href → minimum capability to see the link */

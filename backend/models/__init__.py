@@ -4,6 +4,7 @@ from models.audit import ActivityLog, AuditCycle, AuditCycleAuditor, AuditItem, 
 from models.booking import Booking
 from models.department import Department
 from models.maintenance import MaintenanceRequest
+from models.resource_request import ResourceRequest
 from models.user import User
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "Department",
     "MaintenanceRequest",
     "Notification",
+    "ResourceRequest",
     "TransferRequest",
     "User",
 ]
