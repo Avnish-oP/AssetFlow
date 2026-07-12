@@ -37,8 +37,11 @@ export type Asset = {
   name: string;
   status: string;
   condition: string;
+  category_id?: number | null;
+  serial_number?: string | null;
   location?: string | null;
   is_bookable: boolean;
+  photo_url?: string | null;
 };
 
 export type Allocation = {
@@ -228,6 +231,19 @@ export type RetirementReport = {
     status: string;
     acquisition_date?: string | null;
     reason: string;
+  }[];
+};
+
+export type BookingHeatmapReport = {
+  cells: { weekday: number; hour: number; count: number }[];
+};
+
+export type DepartmentAllocationReport = {
+  items: {
+    department_id?: number | null;
+    department_name: string;
+    active_allocations: number;
+    overdue_allocations: number;
   }[];
 };
 

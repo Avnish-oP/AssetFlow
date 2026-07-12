@@ -60,3 +60,24 @@ class RetirementItem(BaseModel):
 
 class RetirementReport(BaseModel):
     items: list[RetirementItem] = Field(default_factory=list)
+
+
+class BookingHeatmapCell(BaseModel):
+    weekday: int  # 0=Mon .. 6=Sun
+    hour: int
+    count: int = 0
+
+
+class BookingHeatmapReport(BaseModel):
+    cells: list[BookingHeatmapCell] = Field(default_factory=list)
+
+
+class DepartmentAllocationRow(BaseModel):
+    department_id: int | None = None
+    department_name: str
+    active_allocations: int = 0
+    overdue_allocations: int = 0
+
+
+class DepartmentAllocationReport(BaseModel):
+    items: list[DepartmentAllocationRow] = Field(default_factory=list)

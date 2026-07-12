@@ -135,6 +135,18 @@ export default function BookingsPage() {
     }
   }
 
+  async function cancelBooking(booking: Booking) {
+    if (booking.status === "cancelled" || booking.status === "completed") return;
+    try {
+      const updated = await apiFetch<Booking>(`/bookings/${booking.id}/cancel`, { method: "POST" });
+      setBookings((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+      if (resourceId) await loadDaySlots(Number(resourceId), date);
+      showToast("Booking cancelled", "success");
+    } catch {
+      showToast("Failed to cancel booking", "error");
+    }
+  }
+
   function selectHour(hour: number) {
     setStart(toTimeValue(hour));
     setEnd(toTimeValue(hour + 1));
@@ -272,15 +284,25 @@ export default function BookingsPage() {
         </div>
       </section>
 
-      <DataTable headers={["Resource", "Start", "End", "Status"]}>
+      <DataTable headers={["Resource", "Start", "End", "Status", "Actions"]}>
         {bookings.map((booking) => {
           const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
+          const canCancel = booking.status === "upcoming" || booking.status === "ongoing";
           return (
             <tr key={booking.id}>
               <td className="px-4 py-3 font-medium">{resourceName}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
               <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
+              <td className="px-4 py-3">
+                {canCancel ? (
+                  <button type="button" className={secondaryButtonClass} onClick={() => void cancelBooking(booking)}>
+                    Cancel
+                  </button>
+                ) : (
+                  <span className="text-xs text-muted">—</span>
+                )}
+              </td>
             </tr>
           );
         })}

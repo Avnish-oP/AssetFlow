@@ -35,6 +35,8 @@ class AssetResponse(OrmModel):
     name: str
     category_id: int | None = None
     serial_number: str | None = None
+    acquisition_date: date | None = None
+    acquisition_cost: Decimal | None = None
     condition: str
     location: str | None = None
     is_bookable: bool

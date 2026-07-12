@@ -17,6 +17,8 @@ async def list_assets(
     db: Annotated[AsyncSession, Depends(get_db)],
     search: str | None = None,
     status_filter: str | None = Query(default=None, alias="status"),
+    category_id: int | None = None,
+    location: str | None = None,
     is_bookable: bool | None = None,
     limit: int = Query(default=50, le=100),
     offset: int = 0,
@@ -27,6 +29,10 @@ async def list_assets(
         stmt = stmt.where(or_(Asset.name.ilike(pattern), Asset.tag.ilike(pattern), Asset.serial_number.ilike(pattern)))
     if status_filter:
         stmt = stmt.where(Asset.status == status_filter)
+    if category_id is not None:
+        stmt = stmt.where(Asset.category_id == category_id)
+    if location:
+        stmt = stmt.where(Asset.location.ilike(f"%{location}%"))
     if is_bookable is not None:
         stmt = stmt.where(Asset.is_bookable.is_(is_bookable))
     return (await db.scalars(stmt)).all()

@@ -217,11 +217,16 @@ Adjust freely if the 4th person's actual skills differ — the point is *module 
 
 ## 9. Seed data & demo script
 
-`backend/seed.py` wipes application tables and recreates the exact examples the problem statement itself uses — Priya Shah / Laptop AF-0114 / Engineering, Room B2 / 9:00–10:00 — so the demo *is* the spec.
+Two seed modes:
 
 ```bash
-cd backend && python seed.py
+cd backend
+python seed.py                 # SMOKE — full shared dataset (notifications, transfers, audit, etc.)
+python seed.py --clean         # CLEAN — master data only, for walking the live demo below
+python seed_export.py          # re-capture your local DB → seeds/smoke_snapshot.json (commit for the team)
 ```
+
+`seeds/smoke_snapshot.json` is the portable copy of the local smoke world (assets AF-0114 / AF-0062 / AF-0200 / AF-ROOM-B2, completed transfers, Room B2 bookings, resolved maintenance, closed Q Demo Audit, 50 notifications). Collaborators get the same Activity & notifications feed after `python seed.py`.
 
 All seeded accounts use password `password`:
 
@@ -234,7 +239,7 @@ All seeded accounts use password `password`:
 | `amit@assetflow.dev` | employee |
 | `neha@assetflow.dev` | employee |
 
-Assets start `available` (AF-0114, AF-0062, AF-0108, AF-ROOM-B2). Allocations / bookings / maintenance / audits are left empty so the steps below can be walked live.
+**Live walkthrough** (`python seed.py --clean`): assets start `available`; allocations / bookings / maintenance / audits are empty so the steps below can be walked live.
 
 1. Login as Admin → Org Setup → promote an employee to Asset Manager (proves no self-elevation).
 2. Register a new asset → appears `Available` with an auto-generated tag.
@@ -254,7 +259,7 @@ Assets start `available` (AF-0114, AF-0062, AF-0108, AF-ROOM-B2). Allocations / 
 git clone <repo> && cd assetflow
 cp .env.example .env
 docker compose up -d          # postgres, redis, minio
-cd backend && python seed.py  # wipe + load demo dataset (README §9)
+cd backend && python seed.py  # wipe + load shared smoke snapshot (or --clean for live walkthrough)
 uvicorn main:app --reload     # http://localhost:8000/docs
 cd ../frontend && npm install && npm run dev  # http://localhost:3000
 ```
