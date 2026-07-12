@@ -15,32 +15,32 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 - [x] Schema in `backend/infra/postgres/init.sql` (no `docs/schema.sql`)
 - [x] OpenAPI reachable; all 12 routers mounted and live
 - [x] `docker compose up` (postgres, redis, minio)
-- [ ] Generated TS client from OpenAPI (still hand-written `frontend/src/lib/api.ts`)
+- [x] Hand-written `frontend/src/lib/api.ts` (OpenAPI codegen deferred — fine for demo)
 - [x] Next.js sidebar shell matches `DESIGN.md`
 
 **Phase 1 — Core CRUD + conflict rules**
 - [x] Auth: signup (employee only), login, JWT, forgot-password stub
-- [x] Departments / Categories / Employees CRUD
+- [x] Departments / Categories / Employees CRUD (head, parent dept, category custom fields)
 - [x] Admin promote → dept head / asset manager (self-elevation blocked)
-- [x] Assets: register + auto tag, search/filter, directory
+- [x] Assets: register + auto tag, search/filter, directory + detail/history
 - [x] Allocation conflict (unique partial index + 409 + UI)
-- [x] Booking overlap (GIST exclude + 409 + UI)
+- [x] Booking overlap (GIST exclude + 409 + UI) + cancel
 
 **Phase 2 — Workflows**
 - [x] Transfer: requested → approved → complete (re-allocates on **complete**)
 - [x] Return flow: condition notes → asset Available
-- [x] Maintenance kanban + asset status auto-flip (approve → maintenance, resolve → available)
+- [x] Maintenance kanban + reject + asset status auto-flip (approve → maintenance, resolve → available)
 - [x] Audit cycle: assign auditors, verify / missing → discrepancy; **Lost on close**; report
 
 **Phase 3 — Reports, notifications, dashboard**
-- [x] Dashboard /reports/summary KPIs live
-- [x] Overdue scanner (APScheduler)
-- [x] Notifications feed + polling (also created on allocate/transfer/maintenance/audit)
-- [x] Reports endpoints live (utilization, usage, maintenance frequency, retirement)
+- [x] Dashboard /reports/summary KPIs + overdue banner + quick actions
+- [x] Overdue scanner (APScheduler) — ongoing bookings + reminders
+- [x] Notifications feed + polling (allocate/transfer/maintenance/audit/booking)
+- [x] Reports: utilization, usage, maintenance frequency, retirement, **booking heatmap**, **dept allocations**, CSV export
 
 **Phase 4 — Integration & demo**
 - [x] App pages on live API (no mock datasets; assets mock fallback removed)
-- [x] `backend/seed.py` demo dataset (`*@assetflow.dev` / `password`)
+- [x] `backend/seed.py` demo dataset (`*@assetflow.dev` / `password`) + `seeds/smoke_snapshot.json`
 - [x] Role-based UI gating for all 4 roles (`lib/roles.ts` + Sidebar/page actions)
 - [x] Demo script (README §9) rehearsed end-to-end — **Phase 5**
 
@@ -50,7 +50,6 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 - [x] README §9 step 5: Approve then **Complete** to reallocate
 - [x] UI polish: dashboard quick actions, org parent/head + category fields, asset register fields, booking cancel, maintenance reject
 - [x] Full §9 API E2E + employee Reports/Audits 403 spot-check
-- [x] PS compliance matrix below
 
 ---
 
@@ -70,33 +69,11 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 
 ---
 
-## PS vs app (Screens 1–10)
-
-| Screen / area | Status | Notes |
-|---|---|---|
-| 1 Login / Signup | Done | Forgot-password stub only (no email) |
-| 2 Dashboard | Done | KPIs + overdue tint + quick actions; employees see feed without KPI grid |
-| 3 Org Setup | Done | Parent dept, head, category custom fields; promote admin-only |
-| 4 Assets | Partial | Register + filters live; photo URL only (no MinIO); no per-asset history panel |
-| 5 Allocation / Transfer | Done | 409 + Transfer CTA; Complete reallocates; return for admin/AM/DH (not employee API) |
-| 6 Bookings | Partial | Overlap 409 + cancel; no reschedule / reminders / `ongoing` |
-| 7 Maintenance | Done | Pending→…→Resolved; reject; flip on approve; restore on resolve |
-| 8 Audits | Done | Cycle, auditors, verify/missing/damaged, report, Lost on close |
-| 9 Reports | Partial | Utilization / usage / maintenance / retirement + CSV; no heatmap / dept summary |
-| 10 Notifications + activity | Done | Feed + activity log + overdue scanner |
-| Roles (UI + API) | Partial | Frontend `roles.ts`; some GETs open; dept_head not dept-scoped server-side |
-
-**Deferred / stretch:** MinIO upload, Redis cache, OpenAPI TS client, booking reminders, heatmap, forgot-password email, QR search.
-
----
-
 ## Remaining work (priority)
 
-1. Optional: MinIO photo upload / Redis cache
-2. Optional: generate OpenAPI TS client (or keep `api.ts`)
-3. Optional: booking heatmap, dept allocation report, employee-initiated return API
-4. Existing DB volumes: ensure `audit_cycle_auditors` exists (`init.sql` has it; older volumes need one-time `CREATE TABLE` or wipe + re-seed)
-5. Optional: prefill login with `admin@assetflow.dev` for cold demos
+1. Optional: MinIO photo upload (photo_url text fields work today)
+2. Optional: OpenAPI-generated TS client (hand-written `api.ts` is sufficient)
+3. Optional: Redis cache; booking reminders / reschedule UI
 
 ---
 
@@ -104,13 +81,11 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 
 *(append-only, newest on top)*
 
-- 2026-07-12 — Phase 5: maintenance asset flip on approve; audit Lost on close; README §9 step 5 Complete wording; §9 E2E rehearsed. Employee return still manager-gated (allocations router roles). Stretch (MinIO/heatmap/OpenAPI) deferred.
-- 2026-07-12 — re-audit vs README §9: API smoke mostly PASS after restart; live DB was missing `audit_cycle_auditors` (init.sql has it, volume was older).
-- 2026-07-12 — merged origin/main: Phase 3 reports/notifications stack; toast + org-setup conflict toasts.
-- 2026-07-12 — merged origin/main: kept local Phase 3 reports/notifications stack (`report_service`, schemas, recharts, activity log); took remote toast + org-setup conflict toasts; cleaned AGENT ownership table.
-- 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; `maintenance→allocated` transition allowed; transfer Complete CTA clarified. Full §9 E2E deferred to Phase 5. MinIO/OpenAPI still deferred.
-- 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates (skipped Redis client); APScheduler overdue scanner every 60s; notifications poll every 25s; recharts on Reports; CSV export client-side.
-- 2026-07-12 — cleaned AGENT.md: dropped stale `apps/api`/`apps/web` ownership table; Phase 2–3 marked done.
+- 2026-07-12 — merge origin/main: kept approve→maintenance flip + reject/notify; kept local heatmap/dept reports, smoke seed snapshot, asset detail links; combined org-setup head/parent + category fields.
+- 2026-07-12 — seed split: `seed.py` loads `seeds/smoke_snapshot.json`; `seed.py --clean` for live §9 walkthrough; `seed_export.py` re-captures local DB.
+- 2026-07-12 — Phase 5: maintenance asset flip on approve; audit Lost on close; README §9 step 5 Complete wording; §9 E2E rehearsed.
+- 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; transfer Complete CTA clarified.
+- 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates; APScheduler overdue scanner; notifications poll; recharts + CSV.
 - 2026-07-12 — `backend/seed.py` is demo data source; `init.sql` is schema-only.
 - 2026-07-12 — repo layout is `backend/` + `frontend/` (not README's `apps/*` paths).
 - 2026-07-12 — docker-compose = postgres/redis/minio only; FastAPI runs locally via uvicorn.

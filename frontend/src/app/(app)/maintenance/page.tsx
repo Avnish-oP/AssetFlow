@@ -201,21 +201,6 @@ export default function MaintenancePage() {
     }
   }
 
-  async function raiseRequest(form: FormData) {
-    setError(null);
-    await apiFetch("/maintenance", {
-      method: "POST",
-      body: JSON.stringify({
-        asset_id: Number(form.get("asset_id")),
-        issue_description: String(form.get("issue_description")),
-        priority: String(form.get("priority") || "medium"),
-        photo_url: String(form.get("photo_url") || "") || null,
-      }),
-    });
-    setShowForm(false);
-    await load();
-  }
-
   async function rejectRequest(requestId: number) {
     if (!canAdvance) return;
     setError(null);
@@ -229,6 +214,21 @@ export default function MaintenancePage() {
       const detail = (err as { detail?: unknown })?.detail;
       setError(typeof detail === "string" ? detail : "Could not reject request");
     }
+  }
+
+  async function raiseRequest(form: FormData) {
+    setError(null);
+    await apiFetch("/maintenance", {
+      method: "POST",
+      body: JSON.stringify({
+        asset_id: Number(form.get("asset_id")),
+        issue_description: String(form.get("issue_description")),
+        priority: String(form.get("priority") || "medium"),
+        photo_url: String(form.get("photo_url") || "") || null,
+      }),
+    });
+    setShowForm(false);
+    await load();
   }
 
   const empty = columns.every((column) => column.items.length === 0);

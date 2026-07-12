@@ -13,7 +13,11 @@ from models.maintenance import MaintenanceRequest
 from schemas.report import (
     AssetUsageItem,
     AssetUsageReport,
+    BookingHeatmapCell,
+    BookingHeatmapReport,
     DashboardSummary,
+    DepartmentAllocationReport,
+    DepartmentAllocationRow,
     MaintenanceFrequencyItem,
     MaintenanceFrequencyReport,
     RetirementItem,
@@ -21,7 +25,6 @@ from schemas.report import (
     UtilizationPoint,
     UtilizationReport,
 )
-
 _CACHE: dict[str, tuple[float, Any]] = {}
 _TTL_SECONDS = 10.0
 
@@ -234,3 +237,66 @@ async def retirement_candidates(db: AsyncSession, years: int = 4) -> RetirementR
             )
         )
     return _store(f"retirement:{years}", RetirementReport(items=items))
+
+
+async def booking_heatmap(db: AsyncSession) -> BookingHeatmapReport:
+    hit = _cached("booking_heatmap")
+    if hit is not None:
+        return hit
+
+    rows = (
+        await db.execute(
+            text(
+                """
+                SELECT EXTRACT(ISODOW FROM lower(slot))::int AS dow,
+                       EXTRACT(HOUR FROM lower(slot))::int AS hour,
+                       COUNT(*)::int AS count
+                FROM bookings
+                WHERE status != 'cancelled'
+                  AND lower(slot) >= NOW() - INTERVAL '30 days'
+                GROUP BY 1, 2
+                ORDER BY 1, 2
+                """
+            )
+        )
+    ).mappings().all()
+    # Postgres ISODOW: 1=Mon .. 7=Sun → convert to 0..6
+    cells = [
+        BookingHeatmapCell(weekday=int(row["dow"]) - 1, hour=int(row["hour"]), count=int(row["count"]))
+        for row in rows
+    ]
+    return _store("booking_heatmap", BookingHeatmapReport(cells=cells))
+
+
+async def department_allocation_summary(db: AsyncSession) -> DepartmentAllocationReport:
+    hit = _cached("dept_allocation")
+    if hit is not None:
+        return hit
+
+    rows = (
+        await db.execute(
+            text(
+                """
+                SELECT d.id AS department_id,
+                       COALESCE(d.name, 'Unassigned') AS department_name,
+                       COUNT(*) FILTER (WHERE a.status = 'active')::int AS active_allocations,
+                       COUNT(*) FILTER (WHERE a.status = 'overdue')::int AS overdue_allocations
+                FROM allocations a
+                LEFT JOIN departments d ON d.id = a.holder_department_id
+                WHERE a.status IN ('active', 'overdue')
+                GROUP BY d.id, d.name
+                ORDER BY active_allocations DESC, department_name
+                """
+            )
+        )
+    ).mappings().all()
+    items = [
+        DepartmentAllocationRow(
+            department_id=row["department_id"],
+            department_name=row["department_name"],
+            active_allocations=int(row["active_allocations"]),
+            overdue_allocations=int(row["overdue_allocations"]),
+        )
+        for row in rows
+    ]
+    return _store("dept_allocation", DepartmentAllocationReport(items=items))

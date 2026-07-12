@@ -10,7 +10,7 @@ from core.security import get_current_user
 from models.booking import Booking
 from models.user import User
 from schemas.booking import BookingCreate
-from services.booking_service import create_booking
+from services.booking_service import cancel_booking, create_booking
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -76,10 +76,9 @@ async def slots(db: Annotated[AsyncSession, Depends(get_db)], resource_id: int, 
 
 
 @router.post("/{booking_id}/cancel")
-async def cancel_booking(booking_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    booking = await db.get(Booking, booking_id)
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
-    booking.status = "cancelled"
-    await db.commit()
-    return serialize_booking(booking)
+async def cancel_booking_route(
+    booking_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    return serialize_booking(await cancel_booking(db, booking_id, actor_id=user.id))

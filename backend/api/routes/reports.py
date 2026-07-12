@@ -8,7 +8,9 @@ from core.security import get_current_user, require_role
 from models.user import User
 from schemas.report import (
     AssetUsageReport,
+    BookingHeatmapReport,
     DashboardSummary,
+    DepartmentAllocationReport,
     MaintenanceFrequencyReport,
     RetirementReport,
     UtilizationReport,
@@ -48,3 +50,13 @@ async def reports_maintenance_frequency(db: Annotated[AsyncSession, Depends(get_
 @router.get("/retirement", response_model=RetirementReport)
 async def reports_retirement(db: Annotated[AsyncSession, Depends(get_db)]):
     return await svc.retirement_candidates(db)
+
+
+@router.get("/bookings/heatmap", response_model=BookingHeatmapReport)
+async def reports_booking_heatmap(db: Annotated[AsyncSession, Depends(get_db)]):
+    return await svc.booking_heatmap(db)
+
+
+@router.get("/departments/allocations", response_model=DepartmentAllocationReport)
+async def reports_department_allocations(db: Annotated[AsyncSession, Depends(get_db)]):
+    return await svc.department_allocation_summary(db)

@@ -76,12 +76,12 @@ export default function DashboardPage() {
 
   const kpis = summary
     ? [
-        { label: "Available assets", value: summary.available, accentColor: "green" as const },
-        { label: "Allocated assets", value: summary.allocated, accentColor: "blue" as const },
-        { label: "Under maintenance", value: summary.maintenance, accentColor: "amber" as const },
-        { label: "Bookings today", value: summary.bookings_today, accentColor: "blue" as const },
-        { label: "Pending transfers", value: summary.pending_transfers, accentColor: "amber" as const },
-        { label: "Due this week", value: summary.due_this_week, accentColor: "red" as const },
+        { label: "Assets Available", value: summary.available, accentColor: "green" as const },
+        { label: "Assets Allocated", value: summary.allocated, accentColor: "blue" as const },
+        { label: "Maintenance Today", value: summary.maintenance, accentColor: "amber" as const },
+        { label: "Active Bookings", value: summary.bookings_today, accentColor: "blue" as const },
+        { label: "Pending Transfers", value: summary.pending_transfers, accentColor: "amber" as const },
+        { label: "Upcoming Returns", value: summary.due_this_week, accentColor: "red" as const },
       ]
     : [];
 
@@ -118,6 +118,31 @@ export default function DashboardPage() {
           description="Employees still see notifications and upcoming returns below."
         />
       )}
+
+      {summary && summary.overdue_allocations > 0 ? (
+        <div className="border-l-4 border-red bg-red-bg px-4 py-3 text-sm">
+          <span className="font-medium text-red">{summary.overdue_allocations} assets overdue for return</span>
+          <span className="text-secondary"> — flagged for follow-up</span>
+        </div>
+      ) : null}
+
+      <section className="flex flex-wrap gap-2">
+        {can(user?.role, "assets_write") ? (
+          <a className={buttonClass} href="/assets">
+            + Register asset
+          </a>
+        ) : null}
+        {can(user?.role, "bookings") ? (
+          <a className={secondaryButtonClass} href="/bookings">
+            Book resource
+          </a>
+        ) : null}
+        {can(user?.role, "maintenance_raise") ? (
+          <a className={secondaryButtonClass} href="/maintenance">
+            Raise maintenance
+          </a>
+        ) : null}
+      </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
