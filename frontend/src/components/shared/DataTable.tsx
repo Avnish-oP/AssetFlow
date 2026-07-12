@@ -12,9 +12,9 @@ export function DataTable({
     <div className="card-surface overflow-x-auto">
       <table className="w-full min-w-0 border-collapse text-left text-sm md:min-w-[480px]">
         <thead>
-          <tr className="border-b border-line bg-raised text-xs text-secondary">
+          <tr className="border-b border-line bg-raised/50 text-xs text-secondary">
             {headers.map((header) => (
-              <th key={header} className="px-4 py-3.5 font-normal">
+              <th key={header} className="px-4 py-3.5 font-medium tracking-wide">
                 {header}
               </th>
             ))}
@@ -23,7 +23,7 @@ export function DataTable({
         <tbody className="divide-y divide-line">
           {isEmpty ? (
             <tr>
-              <td colSpan={headers.length} className="px-4 py-8 text-center text-sm text-secondary">
+              <td colSpan={headers.length} className="px-4 py-10 text-center text-sm text-secondary">
                 No data available
               </td>
             </tr>

@@ -47,10 +47,12 @@ export function PageHeader({
             <div className="mb-1 text-xs text-secondary">{eyebrow}</div>
           ) : null}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-heading">{title}</h1>
+            <h1 className="font-display text-[1.85rem] leading-tight tracking-tight text-primary sm:text-[2rem]">{title}</h1>
             {status}
           </div>
-          {description ? <p className="mt-1 max-w-3xl text-sm text-secondary">{description}</p> : null}
+          {description ? (
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-secondary">{description}</p>
+          ) : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>

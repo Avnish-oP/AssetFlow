@@ -5,8 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { KpiCard } from "@/components/shared/KpiCard";
-import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import { buttonClass, secondaryButtonClass } from "@/components/shared/FormField";
 import {
   apiFetch,
@@ -76,7 +75,7 @@ export default function DashboardPage() {
 
   const kpis = summary
     ? [
-        { label: "Assets Available", value: summary.available, accentColor: "green" as const },
+        { label: "Assets Available", value: summary.available, accentColor: "blue" as const },
         { label: "Assets Allocated", value: summary.allocated, accentColor: "blue" as const },
         { label: "Maintenance Today", value: summary.maintenance, accentColor: "amber" as const },
         { label: "Active Bookings", value: summary.bookings_today, accentColor: "blue" as const },
@@ -86,8 +85,7 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="mx-auto grid max-w-[1600px] gap-6">
-      <PageHeader
+    <div className="mx-auto grid max-w-[1600px] gap-6">      <PageHeader
         title="Dashboard"
         description={
           loading
@@ -102,47 +100,43 @@ export default function DashboardPage() {
               {summary.overdue_allocations} overdue · {summary.returned_this_week} returned this week ·{" "}
               {summary.unread_notifications} unread
             </span>
-          ) : null
-        }
+          ) : null        }
         actions={
           <>
             <button className={secondaryButtonClass} type="button" onClick={() => load()}>
               Refresh
             </button>
             {canWriteAssets ? <Link className={buttonClass} href="/assets">Register asset</Link> : null}
-            {canSeeKpis ? <Link className={buttonClass} href="/reports">Open reports</Link> : null}
-          </>
+            {canSeeKpis ? <Link className={buttonClass} href="/reports">Open reports</Link> : null}          </>
         }
       />
 
       {canSeeKpis ? (
-      <section className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((kpi) => (
-          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} accentColor={kpi.accentColor} />
-        ))}
-      </section>
+        <section className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+          {kpis.map((kpi) => (
+            <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} accentColor={kpi.accentColor} />
+          ))}
+        </section>
       ) : (
         <EmptyState
-          title="KPI dashboard requires manager access"
+          title="KPI board requires manager access"
           description="Employees still see notifications and upcoming returns below."
         />
       )}
 
       {summary && summary.overdue_allocations > 0 ? (
-        <div className="border-l-4 border-red bg-red-bg px-4 py-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-[20px] border border-red/15 bg-red-bg px-5 py-4 text-sm shadow-[var(--shadow-sm)]">
           <span className="font-medium text-red">{summary.overdue_allocations} assets overdue for return</span>
-          <span className="text-secondary"> — flagged for follow-up</span>
+          <span className="text-secondary">— pinned for follow-up</span>
         </div>
       ) : null}
 
       <section className="flex flex-wrap gap-2">
-        {can(user?.role, "bookings") ? (
-          <a className={secondaryButtonClass} href="/bookings">
+        {can(user?.role, "bookings") ? (          <a className={secondaryButtonClass} href="/bookings">
             Book resource
           </a>
         ) : null}
-        {can(user?.role, "maintenance_raise") ? (
-          <a className={secondaryButtonClass} href="/maintenance">
+        {can(user?.role, "maintenance_raise") ? (          <a className={secondaryButtonClass} href="/maintenance">
             Raise maintenance
           </a>
         ) : null}
@@ -192,8 +186,7 @@ export default function DashboardPage() {
               ))
             )}
           </DataTable>
-        </Panel>
-      </section>
+        </Panel>      </section>
     </div>
   );
 }

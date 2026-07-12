@@ -12,8 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
-import { Modal, PageHeader, Panel, Toolbar } from "@/components/shared/Layout";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { Modal, PageHeader, Panel, Toolbar } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
   apiUpload,
@@ -23,6 +22,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { can } from "@/lib/roles";
+import { Select } from "@/components/shared/Select";
 
 const COLUMN_ORDER = ["pending", "approved", "technician_assigned", "in_progress", "resolved"] as const;
 const COLUMN_LABELS: Record<string, string> = {
@@ -34,10 +34,10 @@ const COLUMN_LABELS: Record<string, string> = {
 };
 const COLUMN_DOT: Record<string, string> = {
   pending: "bg-amber",
-  approved: "bg-green",
+  approved: "bg-blue",
   technician_assigned: "bg-blue",
   in_progress: "bg-blue",
-  resolved: "bg-green",
+  resolved: "bg-blue",
 };
 
 function KanbanCard({
@@ -134,7 +134,7 @@ function KanbanCard({
       {item.status === "in_progress" && onAdvance ? (
         <button
           type="button"
-          className={`${buttonClass} mt-2 w-full text-xs bg-green text-white`}
+          className={`${buttonClass} mt-2 w-full text-xs`}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "resolved"); }}
         >
@@ -373,7 +373,6 @@ export default function MaintenancePage() {
           </button>
         }
       />
-
       {!canAdvance ? (
         <p className="text-xs text-secondary">View-only kanban — only admin / asset managers can advance status.</p>
       ) : null}
@@ -392,7 +391,6 @@ export default function MaintenancePage() {
           <option value="low">Low</option>
         </select>
       </Toolbar>
-
       {error ? <p className="text-sm text-red">{error}</p> : null}
 
       {showForm ? (
@@ -410,20 +408,27 @@ export default function MaintenancePage() {
           }}
           >
           <FormField label="Asset">
-            <select className={inputClass} name="asset_id" required>
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.tag} — {asset.name} ({asset.status})
-                </option>
-              ))}
-            </select>
+            <Select
+              key={`maint-asset-${assets[0]?.id ?? "x"}`}
+              name="asset_id"
+              required
+              options={assets.map((asset) => ({
+                value: String(asset.id),
+                label: `${asset.tag} — ${asset.name} (${asset.status})`,
+              }))}
+              defaultValue={assets[0] ? String(assets[0].id) : ""}
+            />
           </FormField>
           <FormField label="Priority">
-            <select className={inputClass} name="priority" defaultValue="medium">
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
+            <Select
+              name="priority"
+              defaultValue="medium"
+              options={[
+                { value: "high", label: "High" },
+                { value: "medium", label: "Medium" },
+                { value: "low", label: "Low" },
+              ]}
+            />
           </FormField>
           <FormField label="Issue description">
             <textarea className={`${inputClass} h-24 py-2`} name="issue_description" required />
@@ -439,7 +444,7 @@ export default function MaintenancePage() {
             </div>
             {uploading ? <p className="mt-1 text-xs text-secondary">Uploading…</p> : null}
             {photoUrl ? (
-              <p className="mt-1 truncate text-xs text-green" title={photoUrl}>
+              <p className="mt-1 truncate text-xs text-brand" title={photoUrl}>
                 Uploaded
               </p>
             ) : null}

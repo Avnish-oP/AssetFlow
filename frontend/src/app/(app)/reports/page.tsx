@@ -114,8 +114,7 @@ export default function ReportsPage() {
   if (!allowed) {
     return (
       <div className="grid gap-4">
-        <PageHeader title="Reports & analytics" />
-        <EmptyState
+        <PageHeader title="Reports & analytics" />        <EmptyState
           title="Insufficient permissions"
           description="Reports are available to admin, asset managers, and department heads."
         />
@@ -134,8 +133,7 @@ export default function ReportsPage() {
         title="Reports & analytics"
         description="Utilization, usage, maintenance, retirement, booking heatmap, and department allocations."
         actions={
-          <>
-          <button className={secondaryButtonClass} type="button" onClick={() => load()}>
+          <>          <button className={secondaryButtonClass} type="button" onClick={() => load()}>
             Refresh
           </button>
           <button

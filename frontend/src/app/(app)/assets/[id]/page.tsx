@@ -56,7 +56,6 @@ export default function AssetDetailPage() {
         description={`${asset.location ?? "No location"} · ${asset.is_bookable ? "Bookable" : "Non-bookable"}`}
         status={<StatusPill value={asset.status} />}
       />
-
       <Panel className="grid gap-3 md:grid-cols-4">
         <div>
           <div className="text-xs text-secondary">Condition</div>

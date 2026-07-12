@@ -70,8 +70,7 @@ export default function NotificationsPage() {
         title="Activity & notifications"
         description={`Polling every 25 seconds. ${unread} unread.`}
         actions={
-          <>
-          <button className={secondaryButtonClass} type="button" onClick={() => load()}>
+          <>          <button className={secondaryButtonClass} type="button" onClick={() => load()}>
             Refresh
           </button>
           <button className={buttonClass} type="button" onClick={() => markAllRead()} disabled={unread === 0}>
@@ -104,7 +103,7 @@ export default function NotificationsPage() {
         ) : (
           <DataTable headers={["Message", "Type", "Status", "When", ""]}>
             {filteredNotifications.map((row) => (
-              <TableRow key={row.id} className={row.is_read ? "" : "bg-green-bg/20"}>
+              <TableRow key={row.id} className={row.is_read ? "" : "bg-brand-bg/20"}>
                 <td className="px-4 py-3">{row.message}</td>
                 <td className="px-4 py-3">
                   <StatusPill value={row.type} />
@@ -113,7 +112,7 @@ export default function NotificationsPage() {
                 <td className="px-4 py-3 text-secondary">{new Date(row.created_at).toLocaleString()}</td>
                 <td className="px-4 py-3">
                   {!row.is_read ? (
-                    <button className="text-xs text-green hover:underline" type="button" onClick={() => markRead(row.id)}>
+                    <button className="text-xs text-brand hover:underline" type="button" onClick={() => markRead(row.id)}>
                       Mark read
                     </button>
                   ) : (
