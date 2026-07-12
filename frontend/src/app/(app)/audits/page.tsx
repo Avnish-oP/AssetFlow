@@ -5,9 +5,7 @@ import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { DatePicker } from "@/components/shared/DatePicker";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
-import { MultiSelect } from "@/components/shared/MultiSelect";
-import { Select } from "@/components/shared/Select";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
   type AuditCycle,
@@ -17,6 +15,8 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { can } from "@/lib/roles";
+import { Select } from "@/components/shared/Select";
+import { MultiSelect } from "@/components/shared/MultiSelect";
 
 type Department = { id: number; name: string };
 
@@ -49,8 +49,7 @@ export default function AuditsPage() {
   if (!allowed) {
     return (
       <div className="grid gap-4">
-        <h1 className="font-display text-[1.85rem] tracking-tight">Audit cycles</h1>
-        <EmptyState title="Insufficient permissions" description="Audits are limited to admin and asset managers." />
+        <PageHeader title="Audit cycles" />        <EmptyState title="Insufficient permissions" description="Audits are limited to admin and asset managers." />
       </div>
     );
   }
@@ -113,21 +112,21 @@ export default function AuditsPage() {
 
   return (
     <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[1.85rem] tracking-tight">Audit cycles</h1>
-          <p className="text-sm text-secondary">Verify assets, flag missing or damaged items, close with a discrepancy report.</p>
-        </div>
-        <button className={buttonClass} type="button" onClick={() => setShowForm(true)}>
-          Create cycle
-        </button>
-      </header>
-
+      <PageHeader
+        title="Audit cycles"
+        description="Verify assets, flag missing or damaged items, and close cycles with discrepancy reports."
+        actions={
+          <button className={buttonClass} type="button" onClick={() => setShowForm(true)}>
+            Create cycle
+          </button>
+        }
+      />
       {error ? <p className="text-sm text-red">{error}</p> : null}
 
       {showForm ? (
-        <form
-          className="card-surface grid gap-3 p-4 md:grid-cols-2"
+        <Panel>
+          <form
+          className="grid gap-3 md:grid-cols-2"
           onSubmit={async (event) => {
             event.preventDefault();
             try {
@@ -137,7 +136,7 @@ export default function AuditsPage() {
               setError(typeof detail === "string" ? detail : "Could not create cycle");
             }
           }}
-        >
+          >
           <FormField label="Cycle name">
             <input className={inputClass} name="name" required placeholder="Q3 Physical Audit" />
           </FormField>
@@ -181,7 +180,8 @@ export default function AuditsPage() {
               Cancel
             </button>
           </div>
-        </form>
+          </form>
+        </Panel>
       ) : null}
 
       {cycles.length === 0 && !showForm ? (
@@ -223,32 +223,34 @@ export default function AuditsPage() {
 
       {selected ? (
         <section className="grid gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-medium">{selected.name}</h2>
-              <p className="text-xs text-secondary">
+          <SectionHeader
+            title={selected.name}
+            description={
+              <>
                 {selected.start_date} → {selected.end_date}
                 {selected.scope_location ? ` · ${selected.scope_location}` : ""}
-              </p>
-            </div>
-            {selected.status === "open" ? (
-              <button className={secondaryButtonClass} type="button" onClick={() => closeCycle()}>
-                Close cycle
-              </button>
-            ) : (
-              <button
-                className={secondaryButtonClass}
-                type="button"
-                onClick={() =>
-                  apiFetch<DiscrepancyReport>(`/audits/${selected.id}/report`)
-                    .then(setReport)
-                    .catch(() => setError("Could not load report"))
-                }
-              >
-                View report
-              </button>
-            )}
-          </div>
+              </>
+            }
+            actions={
+              selected.status === "open" ? (
+                <button className={secondaryButtonClass} type="button" onClick={() => closeCycle()}>
+                  Close cycle
+                </button>
+              ) : (
+                <button
+                  className={secondaryButtonClass}
+                  type="button"
+                  onClick={() =>
+                    apiFetch<DiscrepancyReport>(`/audits/${selected.id}/report`)
+                      .then(setReport)
+                      .catch(() => setError("Could not load report"))
+                  }
+                >
+                  View report
+                </button>
+              )
+            }
+          />
 
           <DataTable headers={["Asset", "Location", "Status", "Actions"]}>
             {selected.items.map((item) => (
@@ -288,7 +290,7 @@ export default function AuditsPage() {
       ) : null}
 
       {report ? (
-        <section className="card-surface p-4">
+        <Panel>
           <h2 className="mb-2 text-base font-medium">Discrepancy report — {report.cycle_name}</h2>
           <p className="mb-4 text-sm text-secondary">
             {report.missing_count} missing · {report.damaged_count} damaged · {report.verified_count} verified
@@ -307,7 +309,7 @@ export default function AuditsPage() {
               </TableRow>
             ))}
           </DataTable>
-        </section>
+        </Panel>
       ) : null}
     </div>
   );

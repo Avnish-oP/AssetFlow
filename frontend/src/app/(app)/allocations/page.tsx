@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { DatePicker } from "@/components/shared/DatePicker";
-import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { Select } from "@/components/shared/Select";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { Modal, PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import {
   apiFetch,
@@ -48,6 +48,9 @@ export default function AllocationsPage() {
   const [returnNotes, setReturnNotes] = useState("");
   const [returnCondition, setReturnCondition] = useState("good");
   const [message, setMessage] = useState<string | null>(null);
+  const [transferAssetId, setTransferAssetId] = useState<number | "">("");
+  const [transferToId, setTransferToId] = useState<number | "">("");
+  const transferableAllocations = allocations.filter((a) => a.status === "active");
 
   async function refresh() {
     setLoadError(null);
@@ -311,13 +314,14 @@ export default function AllocationsPage() {
             {conflict.current_holder?.department ? ` (${conflict.current_holder.department})` : ""}. Submit a transfer
             request instead.
           </ConflictBanner>
-          <form
-            className="card-surface grid gap-3 p-4 md:grid-cols-[1fr_2fr_auto]"
+          <Panel>
+            <form
+            className="grid gap-3 md:grid-cols-[1fr_2fr_auto]"
             onSubmit={async (event) => {
               event.preventDefault();
               await submitConflictTransfer(new FormData(event.currentTarget));
             }}
-          >
+            >
             <FormField label="Transfer to">
               <Select
                 name="to_holder_id"
@@ -339,7 +343,7 @@ export default function AllocationsPage() {
       ) : null}
 
       <section className="grid gap-3">
-        <h2 className="text-base font-medium">Active allocations</h2>
+        <SectionHeader title="Active allocations" />
         <DataTable headers={["Asset", "Holder", "Allocated", "Due", "Status", ""]}>
           {allocations.map((allocation) => (
             <TableRow key={allocation.id}>
@@ -386,7 +390,7 @@ export default function AllocationsPage() {
       </section>
 
       <section className="grid gap-3">
-        <h2 className="text-base font-medium">Transfer requests</h2>
+        <SectionHeader title="Transfer requests" />
         {transfers.some((transfer) => transfer.status === "approved") ? (
           <p className="text-xs text-amber">
             Approved transfers must be <span className="font-medium">Completed</span> to reallocate the asset to the new
@@ -434,10 +438,7 @@ export default function AllocationsPage() {
       </section>
 
       {returnTarget ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
-          <div className="card-surface w-full max-w-md p-5">
-            <h3 className="mb-1 text-base font-medium">Return asset</h3>
-            <p className="mb-4 text-sm text-secondary">{assetLabel(returnTarget.asset_id)}</p>
+        <Modal title="Return asset" description={assetLabel(returnTarget.asset_id)} onClose={() => setReturnTarget(null)}>
             <div className="grid gap-3">
               <FormField label="Condition">
                 <Select
@@ -467,8 +468,7 @@ export default function AllocationsPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       ) : null}
     </div>
   );

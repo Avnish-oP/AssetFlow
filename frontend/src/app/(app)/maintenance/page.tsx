@@ -12,8 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
-import { Select } from "@/components/shared/Select";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { Modal, PageHeader, Panel, Toolbar } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
   apiUpload,
@@ -23,6 +22,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { can } from "@/lib/roles";
+import { Select } from "@/components/shared/Select";
 
 const COLUMN_ORDER = ["pending", "approved", "technician_assigned", "in_progress", "resolved"] as const;
 const COLUMN_LABELS: Record<string, string> = {
@@ -116,7 +116,7 @@ function KanbanCard({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "technician_assigned"); }}
         >
-          Assign Technician →
+          Assign technician
         </button>
       ) : null}
 
@@ -127,7 +127,7 @@ function KanbanCard({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "in_progress"); }}
         >
-          Start Work →
+          Start work
         </button>
       ) : null}
 
@@ -138,7 +138,7 @@ function KanbanCard({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); onAdvance(item.id, "resolved"); }}
         >
-          Mark Resolved ✓
+          Mark resolved
         </button>
       ) : null}
     </div>
@@ -204,6 +204,8 @@ export default function MaintenancePage() {
   const [error, setError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [assignment, setAssignment] = useState<{ requestId: number; nextStatus: string } | null>(null);
+  const [technicianName, setTechnicianName] = useState("On-call tech");
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const load = useCallback(async () => {
@@ -249,9 +251,9 @@ export default function MaintenancePage() {
     try {
       const body: { status: string; technician_name?: string } = { status: targetStatus };
       if (targetStatus === "technician_assigned" && !current.technician_name) {
-        const name = window.prompt("Technician name", "On-call tech") ?? "";
-        if (!name.trim()) return;
-        body.technician_name = name.trim();
+        setTechnicianName("On-call tech");
+        setAssignment({ requestId, nextStatus: targetStatus });
+        return;
       }
       await apiFetch(`/maintenance/${requestId}/status`, { method: "PATCH", body: JSON.stringify(body) });
       await load();
@@ -284,9 +286,9 @@ export default function MaintenancePage() {
       if (nextStatus === "technician_assigned") {
         const current = columns.flatMap((c) => c.items).find((item) => item.id === requestId);
         if (!current?.technician_name) {
-          const name = window.prompt("Assign technician name:", "On-call tech") ?? "";
-          if (!name.trim()) return;
-          body.technician_name = name.trim();
+          setTechnicianName("On-call tech");
+          setAssignment({ requestId, nextStatus });
+          return;
         }
       }
       await apiFetch(`/maintenance/${requestId}/status`, { method: "PATCH", body: JSON.stringify(body) });
@@ -309,6 +311,23 @@ export default function MaintenancePage() {
     } catch (err) {
       const detail = (err as { detail?: unknown })?.detail;
       setError(typeof detail === "string" ? detail : "Could not reject request");
+    }
+  }
+
+  async function submitAssignment() {
+    if (!assignment || !technicianName.trim()) return;
+    setError(null);
+    try {
+      await apiFetch(`/maintenance/${assignment.requestId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: assignment.nextStatus, technician_name: technicianName.trim() }),
+      });
+      setAssignment(null);
+      setTechnicianName("On-call tech");
+      await load();
+    } catch (err) {
+      const detail = (err as { detail?: unknown })?.detail;
+      setError(typeof detail === "string" ? detail : "Could not assign technician");
     }
   }
 
@@ -345,48 +364,39 @@ export default function MaintenancePage() {
 
   return (
     <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[1.85rem] tracking-tight">Maintenance</h1>
-          <p className="text-sm text-secondary">
-            Approve flips the asset to under maintenance. Advance cards one column at a time; resolve restores
-            available or allocated.
-          </p>
-        </div>
-        <button className={buttonClass} type="button" onClick={() => setShowForm(true)} disabled={!canRaise}>
-          Raise request
-        </button>
-      </header>
-
+      <PageHeader
+        title="Maintenance"
+        description="Approve requests, assign technicians, track work, and resolve assets back to service."
+        actions={
+          <button className={buttonClass} type="button" onClick={() => setShowForm(true)} disabled={!canRaise}>
+            Raise request
+          </button>
+        }
+      />
       {!canAdvance ? (
         <p className="text-xs text-secondary">View-only kanban — only admin / asset managers can advance status.</p>
       ) : null}
 
-      <div className="flex flex-wrap gap-3">
+      <Toolbar>
         <input
           className={`${inputClass} max-w-xs`}
           placeholder="Search assets or issues"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <Select
-          className="max-w-[160px]"
-          value={priorityFilter}
-          onChange={setPriorityFilter}
-          options={[
-            { value: "", label: "All priorities" },
-            { value: "high", label: "High" },
-            { value: "medium", label: "Medium" },
-            { value: "low", label: "Low" },
-          ]}
-        />
-      </div>
-
+        <select className={`${inputClass} max-w-[160px]`} value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
+          <option value="">All priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </Toolbar>
       {error ? <p className="text-sm text-red">{error}</p> : null}
 
       {showForm ? (
-        <form
-          className="card-surface grid min-w-0 gap-3 overflow-hidden p-4 md:grid-cols-2"
+        <Panel>
+          <form
+          className="grid min-w-0 gap-3 overflow-hidden md:grid-cols-2"
           onSubmit={async (event) => {
             event.preventDefault();
             try {
@@ -396,7 +406,7 @@ export default function MaintenancePage() {
               setError(typeof detail === "string" ? detail : "Could not create request");
             }
           }}
-        >
+          >
           <FormField label="Asset">
             <Select
               key={`maint-asset-${assets[0]?.id ?? "x"}`}
@@ -456,7 +466,8 @@ export default function MaintenancePage() {
               Cancel
             </button>
           </div>
-        </form>
+          </form>
+        </Panel>
       ) : null}
 
       {empty && !showForm ? (
@@ -483,6 +494,34 @@ export default function MaintenancePage() {
           </div>
         </DndContext>
       )}
+
+      {assignment ? (
+        <Modal
+          title="Assign technician"
+          description="Add the technician name before moving this request into the assigned column."
+          className="max-w-sm"
+          onClose={() => setAssignment(null)}
+        >
+          <div className="grid gap-3">
+            <FormField label="Technician name">
+              <input
+                className={inputClass}
+                value={technicianName}
+                onChange={(event) => setTechnicianName(event.target.value)}
+                autoFocus
+              />
+            </FormField>
+            <div className="flex flex-wrap gap-2">
+              <button className={buttonClass} type="button" onClick={() => void submitAssignment()} disabled={!technicianName.trim()}>
+                Assign technician
+              </button>
+              <button className={secondaryButtonClass} type="button" onClick={() => setAssignment(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

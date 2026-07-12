@@ -42,8 +42,7 @@ export default function SignupPage() {
       <form onSubmit={submit} className="card-surface animate-fade-up w-full max-w-[440px] p-8">
         <div className="flex items-center gap-2.5">
           <img src="/logo.svg" alt="AssetFlow Logo" className="h-9 w-auto" />
-          <h1 className="font-display text-2xl tracking-tight">Create account</h1>
-        </div>
+          <h1 className="font-display text-2xl tracking-tight">Create account</h1>        </div>
         <p className="mt-1.5 text-sm text-secondary">New users start with employee access</p>
         <div className="mt-6 grid gap-4">
           <FormField label="Name">

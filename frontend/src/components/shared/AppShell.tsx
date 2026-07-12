@@ -30,8 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <Sidebar />
       <main className="min-h-screen max-w-[100vw] overflow-x-hidden px-4 py-5 sm:px-6 lg:ml-[260px] lg:max-w-[calc(100vw-260px)] lg:px-8 lg:py-7">
-        <div className="page-shell mx-auto w-full min-w-0 max-w-[1600px]">{children}</div>
-      </main>
+        <div className="page-shell mx-auto w-full min-w-0 max-w-[1600px]">{children}</div>      </main>
     </>
   );
 }

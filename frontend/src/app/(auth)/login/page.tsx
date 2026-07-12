@@ -84,8 +84,7 @@ export default function LoginPage() {
             <div className="mood-tile pin-wash-sky col-span-2 p-4">
               <div className="text-[11px] uppercase tracking-[0.12em] text-secondary">Workflows</div>
               <div className="mt-2 font-display text-2xl text-primary">Transfers · Bookings · Maintenance</div>
-            </div>
-          </div>
+            </div>          </div>
         </div>
 
         <p className="text-xs text-muted">Demo · admin@assetflow.dev / password</p>

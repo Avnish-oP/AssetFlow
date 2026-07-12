@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ConflictBanner } from "@/components/shared/ConflictBanner";
-import { DataTable } from "@/components/shared/DataTable";
-import { DatePicker } from "@/components/shared/DatePicker";
+import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
-import { Select } from "@/components/shared/Select";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { Modal, PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import { TimePicker } from "@/components/shared/TimePicker";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type ApiError, type Asset, type Booking } from "@/lib/api";
+import { Select } from "@/components/shared/Select";
+import { DatePicker } from "@/components/shared/DatePicker";
 
 type DaySlot = {
   id: number;
@@ -221,18 +221,15 @@ export default function BookingsPage() {
 
   return (
     <div className="grid gap-6">
-      <header>
-        <h1 className="font-display text-[1.85rem] tracking-tight">Resource booking</h1>
-        <p className="text-sm text-secondary">Overlapping slots are rejected by the Postgres range constraint.</p>
-      </header>
-
-      <form
-        className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-5"
+      <PageHeader title="Resource booking" description="Book shared assets and preview conflicting day slots before submitting." />
+      <Panel>
+        <form
+        className="grid gap-3 md:grid-cols-5"
         onSubmit={async (event) => {
           event.preventDefault();
           await book();
         }}
-      >
+        >
         <FormField label="Resource">
           <Select
             value={resourceId === "" ? "" : String(resourceId)}
@@ -259,7 +256,8 @@ export default function BookingsPage() {
         <button className={`${buttonClass} mt-6`} disabled={!resourceId || isSubmitting}>
           {isSubmitting ? "Booking..." : "Book a slot"}
         </button>
-      </form>
+        </form>
+      </Panel>
 
       {error ? <p className="text-sm text-red">{error}</p> : null}
 
@@ -279,22 +277,20 @@ export default function BookingsPage() {
         </ConflictBanner>
       ) : null}
 
-      <section className="rounded-lg border border-line bg-surface p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-medium">Day schedule</h2>
-            <p className="text-xs text-secondary">
-              {selectedResource ? `${selectedResource.name} · ${date}` : "Select a resource"}
-            </p>
-          </div>
-          <button
-            type="button"
-            className={secondaryButtonClass}
-            onClick={() => resourceId && loadDaySlots(Number(resourceId), date)}
-          >
-            Refresh
-          </button>
-        </div>
+      <Panel>
+        <SectionHeader
+          title="Day schedule"
+          description={selectedResource ? `${selectedResource.name} · ${date}` : "Select a resource"}
+          actions={
+            <button
+              type="button"
+              className={secondaryButtonClass}
+              onClick={() => resourceId && loadDaySlots(Number(resourceId), date)}
+            >
+              Refresh
+            </button>
+          }
+        />
 
         <div className="grid gap-2">
           {HOURS.map((hour) => {
@@ -346,14 +342,14 @@ export default function BookingsPage() {
             );
           })}
         </div>
-      </section>
+      </Panel>
 
       <DataTable headers={["Resource", "Start", "End", "Status", "Actions"]}>
         {bookings.map((booking) => {
           const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
           const canEdit = booking.status === "upcoming" || booking.status === "ongoing";
           return (
-            <tr key={booking.id}>
+            <TableRow key={booking.id}>
               <td className="px-4 py-3 font-medium">{resourceName}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
@@ -374,15 +370,13 @@ export default function BookingsPage() {
                   <span className="text-xs text-muted">—</span>
                 )}
               </td>
-            </tr>
+            </TableRow>
           );
         })}
       </DataTable>
 
       {rescheduleId ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg border border-line bg-surface p-5">
-            <h3 className="mb-3 text-base font-medium">Reschedule booking #{rescheduleId}</h3>
+        <Modal title={`Reschedule booking #${rescheduleId}`} onClose={() => setRescheduleId(null)}>
             <div className="grid gap-3">
               <FormField label="Date">
                 <DatePicker value={rescheduleDate} onChange={setRescheduleDate} placeholder="Date" />
@@ -402,8 +396,7 @@ export default function BookingsPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       ) : null}
     </div>
   );

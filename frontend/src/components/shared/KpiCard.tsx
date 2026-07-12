@@ -47,8 +47,7 @@ export function KpiCard({
           className={`grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl [&_svg]:size-4 ${
             accentColor ? iconByAccent[accentColor] : "bg-raised text-brand"
           }`}
-        >
-          {icon ?? <KpiIcon label={label} />}
+        >          {icon ?? <KpiIcon label={label} />}
         </div>
       </div>
       {trend ? (

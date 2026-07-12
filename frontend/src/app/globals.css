@@ -201,7 +201,6 @@ button {
     box-shadow var(--transition-fast),
     background-color var(--transition-fast);
   min-width: 0;
-  max-width: 100%;
 }
 
 .card-surface-hover:hover {
@@ -264,7 +263,6 @@ button {
 }
 
 input[type="file"] {
-  max-width: 100%;
   min-width: 0;
 }
 

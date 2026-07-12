@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { DataTable } from "@/components/shared/DataTable";
-import { DatePicker } from "@/components/shared/DatePicker";
+import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonClass, FormField, fileInputClass, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
-import { Select } from "@/components/shared/Select";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { PageHeader, Panel, Toolbar } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, apiUpload, type Asset, type ResourceRequest } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { can } from "@/lib/roles";
+import { Select } from "@/components/shared/Select";
+import { DatePicker } from "@/components/shared/DatePicker";
 
 type Category = { id: number; name: string };
 
@@ -330,7 +330,7 @@ export default function AssetsPage() {
       ) : null}
 
       {canWrite ? (
-        <div className="card-surface grid gap-4 overflow-hidden p-4">
+        <Panel>
           <form
             key={formKey}
             className="grid min-w-0 gap-3 md:grid-cols-3 lg:grid-cols-4"
@@ -425,10 +425,10 @@ export default function AssetsPage() {
               {isSubmitting ? "Registering..." : "+ Register asset"}
             </button>
           </form>
-        </div>
+        </Panel>
       ) : null}
 
-      <div className="flex min-w-0 flex-wrap gap-3">
+      <Toolbar>
         <input
           className={`${inputClass} max-w-full sm:max-w-xs`}
           placeholder="Search by tag, serial, name, or QR value…"
@@ -466,7 +466,7 @@ export default function AssetsPage() {
         >
           Apply filters
         </button>
-      </div>
+      </Toolbar>
 
       {loadError ? (
         <EmptyState
@@ -498,7 +498,7 @@ export default function AssetsPage() {
           ]}
         >
           {assets.map((asset) => (
-            <tr key={asset.id}>
+            <TableRow key={asset.id}>
               <td className="px-4 py-3">
                 <Link className="text-green hover:underline" href={`/assets/${asset.id}`}>
                   {asset.tag}
@@ -529,7 +529,7 @@ export default function AssetsPage() {
                   </button>
                 ) : null}
               </td>
-            </tr>
+            </TableRow>
           ))}
         </DataTable>
       ) : null}

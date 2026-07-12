@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { KpiCard } from "@/components/shared/KpiCard";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { PageHeader, Panel, SectionHeader } from "@/components/shared/Layout";import { StatusPill } from "@/components/shared/StatusPill";
 import { buttonClass, secondaryButtonClass } from "@/components/shared/FormField";
 import {
   apiFetch,
@@ -24,8 +24,6 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const canSeeKpis = can(user?.role, "dashboard_kpis");
   const canWriteAssets = can(user?.role, "assets_write");
-  const canRaise = can(user?.role, "maintenance_raise");
-  const canBook = can(user?.role, "bookings");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [returns, setReturns] = useState<
@@ -87,32 +85,29 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="grid gap-7 pt-14 lg:pt-0">
-      <PageHeader
+    <div className="mx-auto grid max-w-[1600px] gap-6">      <PageHeader
         title="Dashboard"
         description={
           loading
-            ? "Loading operational status…"
+            ? "Loading operational status..."
             : canSeeKpis
-              ? "Your live ops board — KPIs refresh every 25s."
+              ? "Live KPIs from reports, refreshed every 25 seconds."
               : "Notifications and returns for your account. Full KPIs require manager access."
         }
-        meta={
-          summary
-            ? `${summary.overdue_allocations} overdue · ${summary.returned_this_week} returned this week · ${summary.unread_notifications} unread`
-            : undefined
-        }
+        status={
+          summary ? (
+            <span className="text-xs text-secondary">
+              {summary.overdue_allocations} overdue · {summary.returned_this_week} returned this week ·{" "}
+              {summary.unread_notifications} unread
+            </span>
+          ) : null        }
         actions={
           <>
             <button className={secondaryButtonClass} type="button" onClick={() => load()}>
               Refresh
             </button>
-            {canSeeKpis ? (
-              <a className={buttonClass} href="/reports">
-                Open reports
-              </a>
-            ) : null}
-          </>
+            {canWriteAssets ? <Link className={buttonClass} href="/assets">Register asset</Link> : null}
+            {canSeeKpis ? <Link className={buttonClass} href="/reports">Open reports</Link> : null}          </>
         }
       />
 
@@ -137,109 +132,61 @@ export default function DashboardPage() {
       ) : null}
 
       <section className="flex flex-wrap gap-2">
-        {canWriteAssets ? (
-          <a className={buttonClass} href="/assets">
-            + Register asset
-          </a>
-        ) : null}
-        {canBook ? (
-          <a className={secondaryButtonClass} href="/bookings">
+        {can(user?.role, "bookings") ? (          <a className={secondaryButtonClass} href="/bookings">
             Book resource
           </a>
         ) : null}
-        {canRaise ? (
-          <a className={secondaryButtonClass} href="/maintenance">
+        {can(user?.role, "maintenance_raise") ? (          <a className={secondaryButtonClass} href="/maintenance">
             Raise maintenance
           </a>
         ) : null}
       </section>
 
-      <section className="pin-board">
-        <div className="pin-item card-surface pin-wash-sky p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-display text-xl tracking-tight">Unread notifications</h2>
-            <a href="/notifications" className="text-xs font-medium text-secondary hover:text-primary">
-              View all
-            </a>
-          </div>
+      <section className="grid gap-6 xl:grid-cols-2">
+        <Panel>
+          <SectionHeader
+            title="Unread notifications"
+            actions={<a href="/notifications" className="text-xs text-secondary hover:text-primary">View all</a>}
+          />
           {notifications.length === 0 ? (
             <EmptyState title="No unread notifications" description="Workflow events will appear here." />
           ) : (
-            <ul className="space-y-3">
+            <DataTable headers={["Message", "Type", "When"]}>
               {notifications.map((row) => (
-                <li key={row.id} className="rounded-2xl border border-line/80 bg-surface/80 p-3.5 shadow-[var(--shadow-sm)]">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <p className="text-sm leading-snug text-primary">{row.message}</p>
+                <TableRow key={row.id}>
+                  <td className="px-4 py-3">{row.message}</td>
+                  <td className="px-4 py-3">
                     <StatusPill value={row.type} />
-                  </div>
-                  <p className="mt-2 text-[11px] text-muted">{new Date(row.created_at).toLocaleString()}</p>
-                </li>
+                  </td>
+                  <td className="px-4 py-3 text-secondary">{new Date(row.created_at).toLocaleString()}</td>
+                </TableRow>
               ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="pin-item card-surface pin-wash-sand p-5">
-          <h2 className="mb-4 font-display text-xl tracking-tight">Upcoming returns</h2>
-          {returns.length === 0 ? (
-            <p className="text-sm text-secondary">No upcoming returns scheduled.</p>
-          ) : (
-            <ul className="space-y-3">
-              {returns.map((row) => (
-                <li
-                  key={row.id}
-                  className={`rounded-2xl border border-line/80 bg-surface/80 p-3.5 shadow-[var(--shadow-sm)] ${
-                    row.status === "overdue" ? "border-red/20 bg-red-bg/40" : ""
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-primary">{row.asset}</p>
-                      <p className="mt-0.5 text-xs text-secondary">{row.holder}</p>
-                    </div>
-                    <StatusPill value={row.status} />
-                  </div>
-                  <p className="mt-2 text-[11px] tabular-nums text-muted">Due {row.due}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="pin-item card-surface pin-wash-mist p-5">
-          <h2 className="mb-2 font-display text-xl tracking-tight">Quick lane</h2>
-          <p className="mb-4 text-sm text-secondary">Jump into the workflows you use most.</p>
-          <div className="flex flex-col gap-2">
-            {canWriteAssets ? (
-              <a className={buttonClass} href="/assets">
-                Register asset
-              </a>
-            ) : null}
-            {canBook ? (
-              <a className={secondaryButtonClass} href="/bookings">
-                Book resource
-              </a>
-            ) : null}
-            {canRaise ? (
-              <a className={secondaryButtonClass} href="/maintenance">
-                Raise maintenance
-              </a>
-            ) : null}
-            {canSeeKpis ? (
-              <a className={secondaryButtonClass} href="/reports">
-                Browse reports
-              </a>
-            ) : null}
-          </div>
-          {!canWriteAssets && !canBook && !canRaise && !canSeeKpis ? (
-            <DataTable headers={["Hint"]}>
-              <TableRow>
-                <td className="px-4 py-3 text-secondary">Your role has view access — check notifications for updates.</td>
-              </TableRow>
             </DataTable>
-          ) : null}
-        </div>
-      </section>
+          )}
+        </Panel>
+        <Panel>
+          <SectionHeader title="Upcoming returns" />
+          <DataTable headers={["Asset", "Holder", "Due", "Status"]}>
+            {returns.length === 0 ? (
+              <TableRow>
+                <td className="px-4 py-3 text-secondary" colSpan={4}>
+                  No upcoming returns scheduled.
+                </td>
+              </TableRow>
+            ) : (
+              returns.map((row) => (
+                <TableRow key={row.id} className={row.status === "overdue" ? "bg-red-bg/30" : ""}>
+                  <td className="px-4 py-3">{row.asset}</td>
+                  <td className="px-4 py-3 text-secondary">{row.holder}</td>
+                  <td className="px-4 py-3 text-secondary">{row.due}</td>
+                  <td className="px-4 py-3">
+                    <StatusPill value={row.status} />
+                  </td>
+                </TableRow>
+              ))
+            )}
+          </DataTable>
+        </Panel>      </section>
     </div>
   );
 }
