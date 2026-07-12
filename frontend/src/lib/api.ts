@@ -290,3 +290,22 @@ export type ActivityLog = {
   metadata?: Record<string, unknown>;
   created_at: string;
 };
+
+export type ResourceRequest = {
+  id: number;
+  asset_id: number;
+  requested_by: number;
+  reason: string;
+  priority: string;
+  status: string;
+  reviewed_by?: number | null;
+  review_notes?: string | null;
+  expected_return_date?: string | null;
+  created_at: string;
+  reviewed_at?: string | null;
+  asset_tag?: string | null;
+  asset_name?: string | null;
+  asset_status?: string | null;
+  requester_name?: string | null;
+  requester_email?: string | null;
+};

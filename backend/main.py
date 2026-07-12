@@ -16,6 +16,8 @@ from api.routes import (
     maintenance,
     notifications,
     reports,
+    resource_requests,
+    stubs,
     transfers,
     uploads,
 )
@@ -58,6 +60,7 @@ app.include_router(audits.router)
 app.include_router(reports.router)
 app.include_router(notifications.router)
 app.include_router(uploads.router)
+app.include_router(resource_requests.router)
 
 
 @app.get("/health")
