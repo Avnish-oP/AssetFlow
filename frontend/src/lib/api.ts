@@ -145,3 +145,61 @@ export type DiscrepancyReport = {
     expected_location?: string | null;
   }[];
 };
+
+export type DashboardSummary = {
+  available: number;
+  allocated: number;
+  maintenance: number;
+  bookings_today: number;
+  pending_transfers: number;
+  due_this_week: number;
+  returned_this_week: number;
+  overdue_allocations: number;
+  unread_notifications: number;
+};
+
+export type UtilizationReport = {
+  series: { date: string; allocations: number; bookings: number }[];
+};
+
+export type AssetUsageReport = {
+  most_used: { asset_id: number; tag: string; name: string; status: string; allocation_count: number; booking_count: number }[];
+  idle: { asset_id: number; tag: string; name: string; status: string; allocation_count: number; booking_count: number }[];
+};
+
+export type MaintenanceFrequencyReport = {
+  items: { asset_id: number; tag: string; name: string; request_count: number }[];
+};
+
+export type RetirementReport = {
+  items: {
+    asset_id: number;
+    tag: string;
+    name: string;
+    condition: string;
+    status: string;
+    acquisition_date?: string | null;
+    reason: string;
+  }[];
+};
+
+export type AppNotification = {
+  id: number;
+  user_id: number;
+  type: string;
+  message: string;
+  related_entity_type?: string | null;
+  related_entity_id?: number | null;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type ActivityLog = {
+  id: number;
+  actor_id?: number | null;
+  action: string;
+  entity_type: string;
+  entity_id?: number | null;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+};

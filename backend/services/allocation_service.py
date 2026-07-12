@@ -10,6 +10,7 @@ from models.asset import Asset
 from models.department import Department
 from models.user import User
 from schemas.allocation import AllocationCreate, AllocationReturn
+from services.notify import log_activity, notify_roles, notify_user_ids
 from services.transitions import assert_transition
 
 
@@ -52,6 +53,20 @@ async def create_allocation(db: AsyncSession, payload: AllocationCreate) -> Allo
     assert_transition(asset.status, "allocated", "asset")
     asset.status = "allocated"
     db.add(allocation)
+    await db.flush()
+
+    message = f"{asset.tag} ({asset.name}) allocated"
+    await log_activity(db, None, "allocated", "allocation", allocation.id, {"asset_id": asset.id})
+    await notify_user_ids(
+        db,
+        [payload.holder_user_id],
+        type="allocation",
+        message=f"You were allocated {asset.tag} ({asset.name})",
+        entity_type="allocation",
+        entity_id=allocation.id,
+    )
+    await notify_roles(db, ("admin", "asset_manager"), "allocation", message, "allocation", allocation.id)
+
     try:
         await db.commit()
     except IntegrityError as exc:
@@ -95,6 +110,21 @@ async def return_allocation(db: AsyncSession, allocation_id: int, payload: Alloc
         if asset.status == "allocated":
             assert_transition(asset.status, "available", "asset")
             asset.status = "available"
+        tag = asset.tag
+        name = asset.name
+    else:
+        tag = f"#{allocation.asset_id}"
+        name = "asset"
+
+    await log_activity(db, None, "returned", "allocation", allocation.id, {"asset_id": allocation.asset_id})
+    await notify_roles(
+        db,
+        ("admin", "asset_manager"),
+        "return",
+        f"{tag} ({name}) returned",
+        "allocation",
+        allocation.id,
+    )
     await db.commit()
     await db.refresh(allocation)
     return allocation

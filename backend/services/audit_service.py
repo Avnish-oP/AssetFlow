@@ -17,6 +17,7 @@ from schemas.audit import (
     DiscrepancyReport,
 )
 from services.transitions import assert_transition
+from services.notify import log_activity, notify_roles
 
 
 async def _summary_counts(db: AsyncSession, cycle_id: int) -> dict[str, int]:
@@ -186,6 +187,22 @@ async def verify_item(
         if payload.verification_status == "missing":
             assert_transition(asset.status, "lost", "asset")
             asset.status = "lost"
+            await log_activity(
+                db,
+                actor_id,
+                "marked_missing",
+                "audit_item",
+                item.id,
+                {"asset_id": asset.id, "tag": asset.tag},
+            )
+            await notify_roles(
+                db,
+                ("admin", "asset_manager"),
+                "audit_missing",
+                f"{asset.tag} marked missing in audit #{cycle_id}",
+                "audit_item",
+                item.id,
+            )
         elif payload.verification_status == "damaged":
             asset.condition = "damaged"
 

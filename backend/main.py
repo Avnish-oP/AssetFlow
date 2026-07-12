@@ -1,3 +1,6 @@
+from contextlib import asynccontextmanager
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,14 +14,28 @@ from api.routes import (
     departments,
     employees,
     maintenance,
-    stubs,
+    notifications,
+    reports,
     transfers,
 )
 from core.config import get_settings
+from jobs.overdue_scanner import scan_overdue
 
 settings = get_settings()
+scheduler = AsyncIOScheduler()
 
-app = FastAPI(title="AssetFlow API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler.add_job(scan_overdue, "interval", seconds=60, id="overdue_scanner", replace_existing=True)
+    scheduler.start()
+    # Run once at startup so demos don't wait a full minute
+    await scan_overdue()
+    yield
+    scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="AssetFlow API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -37,11 +54,10 @@ app.include_router(transfers.router)
 app.include_router(bookings.router)
 app.include_router(maintenance.router)
 app.include_router(audits.router)
-app.include_router(stubs.stub_router("/reports", "reports"))
-app.include_router(stubs.stub_router("/notifications", "notifications"))
+app.include_router(reports.router)
+app.include_router(notifications.router)
 
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-

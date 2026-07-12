@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.asset import Asset
 from models.booking import Booking
 from schemas.booking import BookingCreate
+from services.notify import log_activity, notify_roles
 
 
 async def _conflict_payload(db: AsyncSession, resource_id: int, start, end) -> dict:
@@ -52,6 +53,16 @@ async def create_booking(db: AsyncSession, payload: BookingCreate, user_id: int)
     )
     db.add(booking)
     try:
+        await db.flush()
+        await log_activity(db, user_id, "booked", "booking", booking.id, {"resource_id": payload.resource_id})
+        await notify_roles(
+            db,
+            ("admin", "asset_manager"),
+            "booking",
+            f"{asset.tag} booked",
+            "booking",
+            booking.id,
+        )
         await db.commit()
     except (IntegrityError, DBAPIError) as exc:
         await db.rollback()

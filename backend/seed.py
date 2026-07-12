@@ -35,6 +35,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import AsyncSessionLocal, engine
 from core.security import hash_password
 from models.asset import Asset, AssetCategory
+from models.audit import Notification
 from models.department import Department
 from models.user import User
 
@@ -187,6 +188,20 @@ async def seed(session: AsyncSession) -> None:
             ),
         ]
     )
+    await session.commit()
+
+    # Welcome notifications so the feed isn't empty on first login
+    for user in (admin, meera, ravi):
+        session.add(
+            Notification(
+                user_id=user.id,
+                type="welcome",
+                message="Welcome to AssetFlow — KPIs and notifications are live.",
+                related_entity_type=None,
+                related_entity_id=None,
+                is_read=False,
+            )
+        )
     await session.commit()
 
     print("Seeded demo dataset.")

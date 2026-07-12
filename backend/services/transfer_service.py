@@ -6,7 +6,51 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.allocation import Allocation, TransferRequest
 from models.asset import Asset
+from services.notify import log_activity, notify_roles, notify_user_ids
 from services.transitions import assert_transition
+
+
+async def create_transfer_request(
+    db: AsyncSession,
+    *,
+    asset_id: int,
+    to_holder_id: int,
+    reason: str,
+    requested_by: int,
+    from_holder_id: int | None,
+) -> TransferRequest:
+    transfer = TransferRequest(
+        asset_id=asset_id,
+        from_holder_id=from_holder_id,
+        to_holder_id=to_holder_id,
+        reason=reason,
+        requested_by=requested_by,
+    )
+    db.add(transfer)
+    await db.flush()
+
+    asset = await db.get(Asset, asset_id)
+    label = f"{asset.tag} ({asset.name})" if asset else f"asset #{asset_id}"
+    await log_activity(db, requested_by, "transfer_requested", "transfer", transfer.id, {"asset_id": asset_id})
+    await notify_roles(
+        db,
+        ("admin", "asset_manager"),
+        "transfer_requested",
+        f"Transfer requested for {label}",
+        "transfer",
+        transfer.id,
+    )
+    await notify_user_ids(
+        db,
+        [to_holder_id, from_holder_id],
+        type="transfer_requested",
+        message=f"Transfer requested for {label}",
+        entity_type="transfer",
+        entity_id=transfer.id,
+    )
+    await db.commit()
+    await db.refresh(transfer)
+    return transfer
 
 
 async def act_on_transfer(db: AsyncSession, transfer: TransferRequest, action: str, actor_id: int) -> TransferRequest:
@@ -19,10 +63,46 @@ async def act_on_transfer(db: AsyncSession, transfer: TransferRequest, action: s
     if action == "approve":
         transfer.status = "approved"
         transfer.approved_by = actor_id
+        await log_activity(db, actor_id, "transfer_approved", "transfer", transfer.id)
+        await notify_user_ids(
+            db,
+            [transfer.requested_by, transfer.to_holder_id, transfer.from_holder_id],
+            type="transfer_approved",
+            message=f"Transfer #{transfer.id} approved",
+            entity_type="transfer",
+            entity_id=transfer.id,
+        )
+        await notify_roles(db, ("admin", "asset_manager"), "transfer_approved", f"Transfer #{transfer.id} approved", "transfer", transfer.id)
     elif action == "reject":
         transfer.status = "rejected"
+        await log_activity(db, actor_id, "transfer_rejected", "transfer", transfer.id)
+        await notify_user_ids(
+            db,
+            [transfer.requested_by],
+            type="transfer_rejected",
+            message=f"Transfer #{transfer.id} rejected",
+            entity_type="transfer",
+            entity_id=transfer.id,
+        )
     elif action == "complete":
         await _complete_transfer(db, transfer, actor_id)
+        await log_activity(db, actor_id, "transfer_completed", "transfer", transfer.id)
+        await notify_user_ids(
+            db,
+            [transfer.requested_by, transfer.to_holder_id, transfer.from_holder_id],
+            type="transfer_completed",
+            message=f"Transfer #{transfer.id} completed — asset reallocated",
+            entity_type="transfer",
+            entity_id=transfer.id,
+        )
+        await notify_roles(
+            db,
+            ("admin", "asset_manager"),
+            "transfer_completed",
+            f"Transfer #{transfer.id} completed",
+            "transfer",
+            transfer.id,
+        )
 
     await db.commit()
     await db.refresh(transfer)

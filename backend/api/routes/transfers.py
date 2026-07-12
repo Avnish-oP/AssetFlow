@@ -9,7 +9,7 @@ from core.security import get_current_user, require_role
 from models.allocation import Allocation, TransferRequest
 from models.user import User
 from schemas.allocation import TransferCreate, TransferResponse
-from services.transfer_service import act_on_transfer
+from services.transfer_service import act_on_transfer, create_transfer_request
 
 router = APIRouter(prefix="/transfers", tags=["transfers"])
 
@@ -26,17 +26,14 @@ async def create_transfer(
     user: Annotated[User, Depends(get_current_user)],
 ):
     active = await db.scalar(select(Allocation).where(Allocation.asset_id == payload.asset_id, Allocation.status == "active"))
-    transfer = TransferRequest(
+    return await create_transfer_request(
+        db,
         asset_id=payload.asset_id,
-        from_holder_id=active.holder_user_id if active else None,
         to_holder_id=payload.to_holder_id,
         reason=payload.reason,
         requested_by=user.id,
+        from_holder_id=active.holder_user_id if active else None,
     )
-    db.add(transfer)
-    await db.commit()
-    await db.refresh(transfer)
-    return transfer
 
 
 @router.post("/{transfer_id}/{action}", response_model=TransferResponse, dependencies=[Depends(require_role("admin", "asset_manager"))])

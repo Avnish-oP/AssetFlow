@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { apiFetch, type AppNotification } from "@/lib/api";
 
 const items: { label: string; href: string; icon: React.ReactNode }[] = [
   {
@@ -105,6 +107,27 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const load = () => {
+      apiFetch<AppNotification[]>("/notifications?unread_only=true&limit=50")
+        .then((rows) => {
+          if (!cancelled) setUnread(rows.length);
+        })
+        .catch(() => {
+          if (!cancelled) setUnread(0);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 25_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [user]);
 
   return (
     <aside className="fixed inset-y-0 left-0 flex w-[240px] flex-col border-r border-line bg-surface">
@@ -131,7 +154,12 @@ export function Sidebar() {
               }`}
             >
               <span className={active ? "text-green" : "text-muted"}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
+              {item.href === "/notifications" && unread > 0 ? (
+                <span className="rounded-full bg-green-bg px-1.5 py-0.5 text-[10px] font-medium text-green">
+                  {unread}
+                </span>
+              ) : null}
             </Link>
           );
         })}

@@ -8,6 +8,7 @@ from models.allocation import Allocation
 from models.asset import Asset
 from models.maintenance import MaintenanceRequest
 from schemas.maintenance import MaintenanceCreate, MaintenanceResponse, MaintenanceStatusUpdate
+from services.notify import log_activity, notify_roles
 from services.transitions import assert_transition
 
 KANBAN_COLUMNS = ["pending", "approved", "technician_assigned", "in_progress", "resolved"]
@@ -50,6 +51,16 @@ async def create_request(db: AsyncSession, payload: MaintenanceCreate, raised_by
         status="pending",
     )
     db.add(request)
+    await db.flush()
+    await log_activity(db, raised_by, "maintenance_raised", "maintenance", request.id, {"asset_id": asset.id})
+    await notify_roles(
+        db,
+        ("admin", "asset_manager"),
+        "maintenance",
+        f"Maintenance raised for {asset.tag}: {payload.issue_description[:80]}",
+        "maintenance",
+        request.id,
+    )
     await db.commit()
     await db.refresh(request)
     return request
@@ -107,6 +118,15 @@ async def advance_status(
             restore = "allocated" if active else "available"
             assert_transition(asset.status, restore, "asset")
             asset.status = restore
+        await log_activity(db, actor_id, "maintenance_resolved", "maintenance", request.id)
+        await notify_roles(
+            db,
+            ("admin", "asset_manager"),
+            "maintenance_resolved",
+            f"Maintenance #{request.id} resolved",
+            "maintenance",
+            request.id,
+        )
 
     request.status = target
     await db.commit()

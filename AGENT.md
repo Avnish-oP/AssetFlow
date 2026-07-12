@@ -37,7 +37,7 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
 
 **Phase 0 — Setup (target 0:30)**
 - [x] Schema agreed and committed (`backend/infra/postgres/init.sql` — no separate `docs/schema.sql`)
-- [x] OpenAPI reachable (`/openapi.json`); all 12 routers mounted (core live, maintenance/audits/reports/notifications still 501 stubs)
+- [x] OpenAPI reachable (`/openapi.json`); core + Phase 2/3 routers live (reports/notifications no longer stubs)
 - [x] `docker compose up` works (postgres, redis, minio reachable)
 - [ ] TS client generated from OpenAPI stub (still hand-written `frontend/src/lib/api.ts`)
 - [x] Next.js sidebar shell matches `DESIGN.md` on all routes
@@ -57,10 +57,10 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
 - [x] Audit cycle: create, assign auditors, verify items, close cycle, discrepancy report, missing → asset status = Lost
 
 **Phase 3 — Reports, notifications, dashboard (target 5:30)**
-- [ ] Dashboard KPI cards live (available/allocated/maintenance/bookings/transfers/returns)
-- [ ] Overdue returns/bookings auto-flagged (APScheduler job running)
-- [ ] Notifications feed + polling
-- [ ] Reports: utilization, most-used/idle, maintenance frequency, due-for-retirement, export
+- [x] Dashboard KPI cards live (available/allocated/maintenance/bookings/transfers/returns)
+- [x] Overdue returns/bookings auto-flagged (APScheduler job running)
+- [x] Notifications feed + polling
+- [x] Reports: utilization, most-used/idle, maintenance frequency, due-for-retirement, export
 
 **Phase 4 — Integration & demo (target 7:00)**
 - [ ] All mocks removed, everything on live data
@@ -74,6 +74,7 @@ Fill in names at kickoff (0:00–0:30 sync). Reassign here, not in chat, so it s
 
 *(append-only, newest on top, one line each: `HH:MM — decision — why`)*
 
+- 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates (skipped Redis client); APScheduler overdue scanner every 60s; notifications poll every 25s; recharts on Reports; CSV export client-side.
 - 2026-07-12 — Phase 0 marked: schema/OpenAPI/docker/sidebar done; OpenAPI TS client still pending (hand-written api.ts).
 - 2026-07-12 — finished Phase 1 gaps: employees POST/DELETE + org-setup CRUD UI; booking day schedule wired to `/bookings/slots` with real overlap preview/409 UI.
 - 2026-07-12 — `backend/seed.py` is the single source of demo data; `init.sql` is schema-only. Re-run `python seed.py` anytime to wipe + reload.
