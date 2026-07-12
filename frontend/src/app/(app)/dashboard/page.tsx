@@ -86,7 +86,7 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="mx-auto grid max-w-[1600px] gap-6 pt-14 lg:pt-0">
+    <div className="mx-auto grid max-w-[1600px] gap-6">
       <PageHeader
         title="Dashboard"
         description={

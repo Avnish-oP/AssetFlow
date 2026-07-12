@@ -125,7 +125,6 @@ button {
   background: var(--surface);
   transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
   min-width: 0;
-  max-width: 100%;
 }
 
 /* Windows Chrome file controls ignore normal width unless constrained */

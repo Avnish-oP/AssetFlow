@@ -494,6 +494,7 @@ export default function MaintenancePage() {
         <Modal
           title="Assign technician"
           description="Add the technician name before moving this request into the assigned column."
+          className="max-w-sm"
           onClose={() => setAssignment(null)}
         >
           <div className="grid gap-3">

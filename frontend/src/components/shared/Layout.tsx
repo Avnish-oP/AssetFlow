@@ -1,29 +1,59 @@
+import Link from "next/link";
 import React from "react";
+
+type Breadcrumb = {
+  label: string;
+  href?: string;
+};
 
 export function PageHeader({
   title,
   description,
   eyebrow,
+  breadcrumbs,
   status,
   actions,
 }: {
   title: string;
   description?: React.ReactNode;
   eyebrow?: React.ReactNode;
+  breadcrumbs?: Breadcrumb[];
   status?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
-        {eyebrow ? <div className="mb-1 text-xs text-secondary">{eyebrow}</div> : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-semibold tracking-tight text-heading">{title}</h1>
-          {status}
+    <header className="card-surface bg-surface px-4 py-4 shadow-sm sm:px-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          {breadcrumbs?.length ? (
+            <nav className="mb-1 flex flex-wrap items-center gap-1 text-xs text-secondary" aria-label="Breadcrumb">
+              {breadcrumbs.map((item, index) => {
+                const current = index === breadcrumbs.length - 1;
+                return (
+                  <React.Fragment key={`${item.label}-${index}`}>
+                    {index > 0 ? <span className="text-muted">/</span> : null}
+                    {item.href && !current ? (
+                      <Link href={item.href} className="hover:text-primary">
+                        {item.label}
+                      </Link>
+                    ) : (
+                      <span className={current ? "text-primary" : ""}>{item.label}</span>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </nav>
+          ) : eyebrow ? (
+            <div className="mb-1 text-xs text-secondary">{eyebrow}</div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight text-heading">{title}</h1>
+            {status}
+          </div>
+          {description ? <p className="mt-1 max-w-3xl text-sm text-secondary">{description}</p> : null}
         </div>
-        {description ? <p className="mt-1 max-w-3xl text-sm text-secondary">{description}</p> : null}
+        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </header>
   );
 }
@@ -105,16 +135,18 @@ export function Modal({
   description,
   children,
   onClose,
+  className = "max-w-md",
 }: {
   title: string;
   description?: React.ReactNode;
   children: React.ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
       <button type="button" aria-label="Close modal" className="absolute inset-0 cursor-default" onClick={onClose} />
-      <div className="card-surface relative w-full max-w-md p-5 shadow-xl">
+      <div className={`card-surface relative w-full p-5 shadow-xl ${className}`}>
         <h3 className="text-base font-medium text-primary">{title}</h3>
         {description ? <p className="mt-1 text-sm text-secondary">{description}</p> : null}
         <div className="mt-4">{children}</div>

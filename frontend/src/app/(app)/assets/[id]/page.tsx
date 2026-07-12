@@ -52,14 +52,7 @@ export default function AssetDetailPage() {
     <div className="grid gap-6">
       <PageHeader
         title={`${asset.tag} — ${asset.name}`}
-        eyebrow={
-          <>
-            <Link href="/assets" className="hover:text-primary">
-              Assets
-            </Link>{" "}
-            / {asset.tag}
-          </>
-        }
+        breadcrumbs={[{ label: "Assets", href: "/assets" }, { label: asset.tag }]}
         description={`${asset.location ?? "No location"} · ${asset.is_bookable ? "Bookable" : "Non-bookable"}`}
         status={<StatusPill value={asset.status} />}
       />
