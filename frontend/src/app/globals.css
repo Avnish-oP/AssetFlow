@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-:root {
+/* Light — current warm ops console */
+:root,
+[data-theme="light"] {
   --bg: #f8f5ef;
   --surface: #fffdf9;
   --surface-raised: #f1e6d7;
@@ -21,6 +23,29 @@
   --radius-card: 10px;
   --radius-control: 8px;
   --transition-fast: 150ms ease;
+  color-scheme: light;
+}
+
+/* Dark — DESIGN.md ops console */
+[data-theme="dark"] {
+  --bg: #0a0a0b;
+  --surface: #131316;
+  --surface-raised: #1b1b1f;
+  --border: #2a2a2e;
+  --border-strong: #3a3a3f;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #6b6b70;
+  --accent-green: #22c55e;
+  --accent-green-bg: #16311f;
+  --accent-red: #ef4444;
+  --accent-red-bg: #3a1a1a;
+  --accent-amber: #f59e0b;
+  --accent-amber-bg: #332405;
+  --accent-blue: #3b82f6;
+  --accent-blue-bg: #16233f;
+  --heading: #22c55e;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -54,6 +79,7 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: -apple-system, Inter, Segoe UI, sans-serif;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 h1,
@@ -94,7 +120,7 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: var(--surface);
-  transition: border-color var(--transition-fast), transform var(--transition-fast);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
 }
 
 .card-surface-hover:hover {

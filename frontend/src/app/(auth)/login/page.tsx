@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -51,7 +52,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-bg px-4">
+    <main className="relative grid min-h-screen place-items-center bg-bg px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeSwitcher />
+      </div>
       <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
         <div className="flex items-center gap-2">
           <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
