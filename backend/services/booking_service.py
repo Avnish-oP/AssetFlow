@@ -7,12 +7,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.asset import Asset
 from models.booking import Booking
-from schemas.booking import BookingCreate
+from schemas.booking import BookingCreate, BookingReschedule
 from services.notify import create_notification, log_activity, notify_roles
 from services.transitions import assert_transition
 
 
-async def _conflict_payload(db: AsyncSession, resource_id: int, start, end) -> dict:
+async def _conflict_payload(
+    db: AsyncSession,
+    resource_id: int,
+    start,
+    end,
+    exclude_booking_id: int | None = None,
+) -> dict:
     row = await db.execute(
         text(
             """
@@ -22,12 +28,18 @@ async def _conflict_payload(db: AsyncSession, resource_id: int, start, end) -> d
             JOIN users u ON u.id = b.booked_by
             WHERE b.resource_id = :resource_id
               AND b.status != 'cancelled'
+              AND (:exclude_id IS NULL OR b.id != :exclude_id)
               AND b.slot && tstzrange(:start, :end, '[)')
             ORDER BY lower(b.slot)
             LIMIT 1
             """
         ),
-        {"resource_id": resource_id, "start": start, "end": end},
+        {
+            "resource_id": resource_id,
+            "start": start,
+            "end": end,
+            "exclude_id": exclude_booking_id,
+        },
     )
     conflict = row.mappings().first()
     if not conflict:
@@ -108,5 +120,59 @@ async def cancel_booking(db: AsyncSession, booking_id: int, actor_id: int | None
         entity_id=booking.id,
     )
     await db.commit()
+    await db.refresh(booking)
+    return booking
+
+
+async def reschedule_booking(
+    db: AsyncSession,
+    booking_id: int,
+    payload: BookingReschedule,
+    actor_id: int | None = None,
+) -> Booking:
+    booking = await db.get(Booking, booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking.status not in {"upcoming", "ongoing"}:
+        raise HTTPException(status_code=400, detail="Only upcoming or ongoing bookings can be rescheduled")
+
+    booking.slot = Range(payload.start, payload.end, bounds="[)")
+    asset = await db.get(Asset, booking.resource_id)
+    label = f"{asset.tag} / {asset.name}" if asset else f"resource #{booking.resource_id}"
+    try:
+        await db.flush()
+        await log_activity(
+            db,
+            actor_id,
+            "booking_rescheduled",
+            "booking",
+            booking.id,
+            {"resource_id": booking.resource_id},
+        )
+        await create_notification(
+            db,
+            booking.booked_by,
+            type="booking_confirmed",
+            message=f"Booking rescheduled: {label}",
+            entity_type="booking",
+            entity_id=booking.id,
+        )
+        await db.commit()
+    except (IntegrityError, DBAPIError) as exc:
+        await db.rollback()
+        detail = jsonable_encoder(
+            {
+                "error": "slot unavailable",
+                "resource_id": booking.resource_id,
+                "conflicting_booking": await _conflict_payload(
+                    db,
+                    booking.resource_id,
+                    payload.start,
+                    payload.end,
+                    exclude_booking_id=booking_id,
+                ),
+            }
+        )
+        raise HTTPException(status_code=409, detail=detail) from exc
     await db.refresh(booking)
     return booking

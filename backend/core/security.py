@@ -26,13 +26,31 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 def create_token(subject: str, token_type: str = "access") -> str:
     settings = get_settings()
-    minutes = settings.access_token_minutes if token_type == "access" else settings.refresh_token_days * 24 * 60
+    if token_type == "access":
+        minutes = settings.access_token_minutes
+    elif token_type == "password_reset":
+        minutes = settings.password_reset_minutes
+    else:
+        minutes = settings.refresh_token_days * 24 * 60
     payload = {
         "sub": subject,
         "typ": token_type,
         "exp": datetime.now(UTC) + timedelta(minutes=minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_token(token: str, expected_type: str | None = None) -> dict:
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+    if expected_type and payload.get("typ") != expected_type:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+    if not payload.get("sub"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return payload
 
 
 async def get_current_user(

@@ -15,6 +15,7 @@ import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/comp
 import { StatusPill } from "@/components/shared/StatusPill";
 import {
   apiFetch,
+  apiUpload,
   type Asset,
   type KanbanBoard,
   type MaintenanceRequest,
@@ -144,6 +145,8 @@ export default function MaintenancePage() {
   const [priorityFilter, setPriorityFilter] = useState("");
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const load = useCallback(async () => {
@@ -224,11 +227,25 @@ export default function MaintenancePage() {
         asset_id: Number(form.get("asset_id")),
         issue_description: String(form.get("issue_description")),
         priority: String(form.get("priority") || "medium"),
-        photo_url: String(form.get("photo_url") || "") || null,
+        photo_url: photoUrl || String(form.get("photo_url") || "") || null,
       }),
     });
     setShowForm(false);
+    setPhotoUrl("");
     await load();
+  }
+
+  async function onPhotoSelected(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await apiUpload("/uploads", file, "maintenance");
+      setPhotoUrl(uploaded.url);
+    } catch {
+      setError("Photo upload failed — is MinIO running?");
+    } finally {
+      setUploading(false);
+    }
   }
 
   const empty = columns.every((column) => column.items.length === 0);
@@ -301,8 +318,24 @@ export default function MaintenancePage() {
           <FormField label="Issue description">
             <textarea className={`${inputClass} h-24 py-2`} name="issue_description" required />
           </FormField>
-          <FormField label="Photo URL (optional)">
-            <input className={inputClass} name="photo_url" placeholder="https://..." />
+          <FormField label="Photo / document">
+            <input
+              className={inputClass}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(event) => void onPhotoSelected(event.target.files?.[0] ?? null)}
+            />
+            {uploading ? <p className="mt-1 text-xs text-secondary">Uploading…</p> : null}
+            {photoUrl ? <p className="mt-1 truncate text-xs text-green">{photoUrl}</p> : null}
+          </FormField>
+          <FormField label="Or photo URL (optional)">
+            <input
+              className={inputClass}
+              name="photo_url"
+              placeholder="https://..."
+              value={photoUrl}
+              onChange={(event) => setPhotoUrl(event.target.value)}
+            />
           </FormField>
           <div className="flex gap-2 md:col-span-2">
             <button className={buttonClass} type="submit">

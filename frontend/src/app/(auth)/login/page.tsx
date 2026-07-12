@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { buttonClass, FormField, inputClass } from "@/components/shared/FormField";
+import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -14,6 +14,8 @@ export default function LoginPage() {
   const { showToast } = useToast();
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("admin@assetflow.dev");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,8 +35,16 @@ export default function LoginPage() {
 
   async function forgotPassword() {
     try {
-      await apiFetch("/auth/forgot-password", { method: "POST", body: "{}" });
-      showToast("Password reset stub accepted — check with an admin to reset.", "success");
+      const result = await apiFetch<{ message: string; reset_token?: string | null }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      if (result.reset_token) {
+        showToast("Reset token issued — set a new password", "success");
+        router.push(`/reset-password?token=${encodeURIComponent(result.reset_token)}`);
+      } else {
+        showToast(result.message, "success");
+      }
     } catch {
       showToast("Could not submit reset request", "error");
     }
@@ -46,7 +56,8 @@ export default function LoginPage() {
         <div className="flex items-center gap-2">
           <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
           <h1 className="text-xl font-semibold">
-            <span className="text-heading">Asset</span><span className="text-blue">Flow</span>
+            <span className="text-heading">Asset</span>
+            <span className="text-blue">Flow</span>
           </h1>
         </div>
         <p className="mt-1 text-sm text-secondary">Sign in to the operations console</p>
@@ -70,13 +81,30 @@ export default function LoginPage() {
         </button>
         <p className="mt-3 text-xs text-muted">Demo seed: admin@assetflow.dev / password</p>
         <div className="mt-4 flex justify-between text-xs text-secondary">
-          <button type="button" className="text-secondary hover:text-primary" onClick={() => void forgotPassword()}>
+          <button type="button" className="text-secondary hover:text-primary" onClick={() => setShowForgot((v) => !v)}>
             Forgot password
           </button>
           <Link href="/signup" className="text-green">
             Create account
           </Link>
         </div>
+
+        {showForgot ? (
+          <div className="mt-4 grid gap-3 rounded-lg border border-line bg-raised p-3">
+            <FormField label="Account email">
+              <input
+                className={inputClass}
+                type="email"
+                value={forgotEmail}
+                onChange={(event) => setForgotEmail(event.target.value)}
+                required
+              />
+            </FormField>
+            <button type="button" className={secondaryButtonClass} onClick={() => void forgotPassword()}>
+              Send reset token
+            </button>
+          </div>
+        ) : null}
       </form>
     </main>
   );

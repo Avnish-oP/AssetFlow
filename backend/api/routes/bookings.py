@@ -9,8 +9,8 @@ from core.database import get_db
 from core.security import get_current_user
 from models.booking import Booking
 from models.user import User
-from schemas.booking import BookingCreate
-from services.booking_service import cancel_booking, create_booking
+from schemas.booking import BookingCreate, BookingReschedule
+from services.booking_service import cancel_booking, create_booking, reschedule_booking
 
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
@@ -82,3 +82,13 @@ async def cancel_booking_route(
     user: Annotated[User, Depends(get_current_user)],
 ):
     return serialize_booking(await cancel_booking(db, booking_id, actor_id=user.id))
+
+
+@router.post("/{booking_id}/reschedule")
+async def reschedule_booking_route(
+    booking_id: int,
+    payload: BookingReschedule,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    return serialize_booking(await reschedule_booking(db, booking_id, payload, actor_id=user.id))

@@ -28,6 +28,8 @@ export default function AllocationsPage() {
   const { user } = useAuth();
   const canManage = can(user?.role, "allocations_manage");
   const canRequestTransfer = can(user?.role, "transfer_request");
+  const canApproveTransfer = can(user?.role, "transfer_approve");
+  const canReturn = can(user?.role, "allocation_return");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
   const [allocations, setAllocations] = useState<Allocation[]>([]);
@@ -236,7 +238,9 @@ export default function AllocationsPage() {
                 <StatusPill value={allocation.status} />
               </td>
               <td className="px-4 py-3">
-                {canManage && (allocation.status === "active" || allocation.status === "overdue") ? (
+                {canReturn &&
+                (allocation.status === "active" || allocation.status === "overdue") &&
+                (canManage || allocation.holder_user_id === user?.id) ? (
                   <button
                     className="text-xs text-green hover:underline"
                     type="button"
@@ -274,7 +278,7 @@ export default function AllocationsPage() {
               </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-2">
-                  {canManage && transfer.status === "requested" ? (
+                  {canApproveTransfer && transfer.status === "requested" ? (
                     <>
                       <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
                         Approve
@@ -284,7 +288,7 @@ export default function AllocationsPage() {
                       </button>
                     </>
                   ) : null}
-                  {canManage && transfer.status === "approved" ? (
+                  {canApproveTransfer && transfer.status === "approved" ? (
                     <button
                       className={`${buttonClass} h-8 px-3 text-xs`}
                       type="button"

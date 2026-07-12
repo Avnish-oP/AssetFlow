@@ -19,6 +19,19 @@ class BookingCreate(BaseModel):
         return value
 
 
+class BookingReschedule(BaseModel):
+    start: datetime
+    end: datetime
+
+    @field_validator("end")
+    @classmethod
+    def end_after_start(cls, value: datetime, info):
+        start = info.data.get("start")
+        if start and value <= start:
+            raise ValueError("end must be after start")
+        return value
+
+
 class BookingResponse(OrmModel):
     id: int
     resource_id: int
