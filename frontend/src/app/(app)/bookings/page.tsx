@@ -5,6 +5,7 @@ import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type ApiError, type Asset, type Booking } from "@/lib/api";
 
 type BookingConflict = {
@@ -15,14 +16,17 @@ export default function BookingsPage() {
   const [resources, setResources] = useState<Asset[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [conflict, setConflict] = useState<BookingConflict | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    apiFetch<Asset[]>("/assets?is_bookable=true").then(setResources).catch(() => setResources([{ id: 2, tag: "AF-ROOM-B2", name: "Room B2", status: "available", condition: "good", location: "Floor 2", is_bookable: true }]));
+    apiFetch<Asset[]>("/assets?is_bookable=true").then(setResources).catch(() => setResources([]));
     apiFetch<Booking[]>("/bookings").then(setBookings).catch(() => setBookings([]));
   }, []);
 
   async function book(form: FormData) {
     setConflict(null);
+    setIsSubmitting(true);
     const date = String(form.get("date"));
     try {
       const booking = await apiFetch<Booking>("/bookings", {
@@ -34,10 +38,17 @@ export default function BookingsPage() {
         }),
       });
       setBookings((current) => [booking, ...current]);
+      showToast("Resource booked successfully", "success");
     } catch (error) {
       const apiError = error as ApiError;
-      if (apiError.status === 409) setConflict(apiError.detail as BookingConflict);
-      else throw error;
+      if (apiError.status === 409) {
+        setConflict(apiError.detail as BookingConflict);
+        showToast("Slot unavailable", "error");
+      } else {
+        showToast("Failed to book resource", "error");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -57,10 +68,12 @@ export default function BookingsPage() {
         }}
       >
         <FormField label="Resource"><select className={inputClass} name="resource_id">{resources.map((resource) => <option key={resource.id} value={resource.id}>{resource.name}</option>)}</select></FormField>
-        <FormField label="Date"><input className={inputClass} name="date" type="date" defaultValue="2026-07-12" required /></FormField>
+        <FormField label="Date"><input className={inputClass} name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required /></FormField>
         <FormField label="Start"><input className={inputClass} name="start" type="time" defaultValue="09:00" required /></FormField>
         <FormField label="End"><input className={inputClass} name="end" type="time" defaultValue="10:00" required /></FormField>
-        <button className={`${buttonClass} mt-6`}>Book</button>
+        <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+          {isSubmitting ? "Booking..." : "Book"}
+        </button>
       </form>
       {conflict ? (
         <ConflictBanner title="Slot unavailable">
@@ -83,14 +96,17 @@ export default function BookingsPage() {
         </div>
       </section>
       <DataTable headers={["Resource", "Start", "End", "Status"]}>
-        {bookings.map((booking) => (
-          <tr key={booking.id}>
-            <td className="px-4 py-3">{booking.resource_id}</td>
-            <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
-            <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
-            <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
-          </tr>
-        ))}
+        {bookings.map((booking) => {
+          const resourceName = resources.find((r) => r.id === booking.resource_id)?.name ?? `ID: ${booking.resource_id}`;
+          return (
+            <tr key={booking.id}>
+              <td className="px-4 py-3 font-medium">{resourceName}</td>
+              <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
+              <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
+              <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
+            </tr>
+          );
+        })}
       </DataTable>
     </div>
   );

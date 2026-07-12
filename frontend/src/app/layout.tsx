@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Enterprise asset and resource management",
 };
 
+import { ToastProvider } from "@/components/shared/Toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -15,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full bg-bg text-primary antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

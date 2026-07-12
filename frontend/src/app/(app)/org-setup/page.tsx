@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { DataTable } from "@/components/shared/DataTable";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type User } from "@/lib/api";
 
 type Department = { id: number; name: string; status: string };
@@ -14,26 +15,44 @@ export default function OrgSetupPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [employees, setEmployees] = useState<User[]>([]);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([{ id: 1, name: "Engineering", status: "active" }]));
-    apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([{ id: 1, name: "Laptop", custom_fields: { warranty_months: 36 } }]));
-    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([{ id: 2, name: "Priya Shah", email: "priya@assetflow.com", role: "employee", status: "active" }]));
+    apiFetch<Department[]>("/departments").then(setDepartments).catch(() => setDepartments([]));
+    apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([]));
+    apiFetch<User[]>("/employees").then(setEmployees).catch(() => setEmployees([]));
   }, []);
 
   async function createDepartment(form: FormData) {
-    const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name: form.get("name") }) });
-    setDepartments((current) => [item, ...current]);
+    try {
+      const item = await apiFetch<Department>("/departments", { method: "POST", body: JSON.stringify({ name: form.get("name") }) });
+      setDepartments((current) => [item, ...current]);
+      showToast("Department created", "success");
+    } catch {
+      showToast("Failed to create department", "error");
+      throw new Error(); // Re-throw to prevent form reset in child
+    }
   }
 
   async function createCategory(form: FormData) {
-    const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
-    setCategories((current) => [item, ...current]);
+    try {
+      const item = await apiFetch<Category>("/categories", { method: "POST", body: JSON.stringify({ name: form.get("name"), custom_fields: {} }) });
+      setCategories((current) => [item, ...current]);
+      showToast("Category created", "success");
+    } catch {
+      showToast("Failed to create category", "error");
+      throw new Error();
+    }
   }
 
   async function promote(employee: User, role: string) {
-    const updated = await apiFetch<User>(`/employees/${employee.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
-    setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+    try {
+      const updated = await apiFetch<User>(`/employees/${employee.id}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+      setEmployees((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      showToast(`Promoted to ${role.replace("_", " ")}`, "success");
+    } catch {
+      showToast("Failed to change role", "error");
+    }
   }
 
   return (
@@ -86,19 +105,28 @@ export default function OrgSetupPage() {
 }
 
 function SectionForm({ label, onSubmit }: { label: string; onSubmit: (form: FormData) => Promise<void> }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   return (
     <form
       className="flex max-w-xl items-end gap-3"
       onSubmit={async (event) => {
         event.preventDefault();
-        await onSubmit(new FormData(event.currentTarget));
-        event.currentTarget.reset();
+        const form = event.currentTarget;
+        setIsSubmitting(true);
+        try {
+          await onSubmit(new FormData(form));
+          form.reset();
+        } finally {
+          setIsSubmitting(false);
+        }
       }}
     >
       <div className="flex-1">
         <FormField label={label}><input className={inputClass} name="name" required /></FormField>
       </div>
-      <button className={buttonClass}>Add</button>
+      <button disabled={isSubmitting} className={buttonClass}>
+        {isSubmitting ? "Adding..." : "Add"}
+      </button>
     </form>
   );
 }

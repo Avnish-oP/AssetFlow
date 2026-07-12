@@ -16,7 +16,7 @@ const palette: Record<string, string> = {
 export function StatusPill({ value }: { value: string }) {
   const key = value.toLowerCase();
   return (
-    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${palette[key] ?? "border-line bg-raised text-secondary"}`}>
+    <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs shadow-sm hover:shadow-md hover:brightness-125 transition-all cursor-default ${palette[key] ?? "border-line bg-raised text-secondary"}`}>
       {value.replaceAll("_", " ")}
     </span>
   );

@@ -10,10 +10,12 @@ export default function SignupPage() {
   const router = useRouter();
   const { signup } = useAuth();
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setIsSubmitting(true);
     const data = new FormData(event.currentTarget);
     const password = String(data.get("password"));
     if (password !== String(data.get("confirm"))) {
@@ -25,6 +27,8 @@ export default function SignupPage() {
       router.push("/dashboard");
     } catch {
       setError("Unable to create account");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -48,7 +52,9 @@ export default function SignupPage() {
           </FormField>
         </div>
         {error ? <p className="mt-3 text-sm text-red">{error}</p> : null}
-        <button className={`${buttonClass} mt-6 w-full`}>Sign up</button>
+        <button disabled={isSubmitting} className={`${buttonClass} mt-6 w-full`}>
+          {isSubmitting ? "Creating account..." : "Sign up"}
+        </button>
         <Link href="/login" className="mt-4 block text-center text-xs text-green">
           Back to sign in
         </Link>
