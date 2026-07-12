@@ -37,16 +37,30 @@ const OPTIONS: { value: Theme; label: string; icon: React.ReactNode }[] = [
 export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme();
 
-  const isDark = theme === "dark";
-
   return (
-    <button
-      type="button"
-      title={`Switch to ${isDark ? "light" : "dark"} theme`}
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="text-secondary hover:text-primary transition flex items-center justify-center"
+    <div
+      role="group"
+      aria-label="Color theme"
+      className={`inline-flex rounded-full border border-line bg-raised p-1 ${compact ? "w-full" : ""}`}
     >
-      {isDark ? OPTIONS[0].icon : OPTIONS[1].icon}
-    </button>
+      {OPTIONS.map((option) => {
+        const active = theme === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            title={option.label}
+            onClick={() => setTheme(option.value)}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
+              active ? "bg-surface text-primary shadow-[var(--shadow-sm)]" : "text-secondary hover:text-primary"
+            }`}
+          >
+            <span className={active ? "text-brand" : "text-muted"}>{option.icon}</span>
+            <span>{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
   );
 }

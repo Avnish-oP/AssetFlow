@@ -112,7 +112,7 @@ export default function ReportsPage() {
   if (!allowed) {
     return (
       <div className="grid gap-4">
-        <h1 className="text-xl font-semibold">Reports & analytics</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Reports & analytics</h1>
         <EmptyState
           title="Insufficient permissions"
           description="Reports are available to admin, asset managers, and department heads."
@@ -131,7 +131,7 @@ export default function ReportsPage() {
     <div className="grid gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Reports & analytics</h1>
+          <h1 className="font-display text-[1.85rem] tracking-tight">Reports & analytics</h1>
           <p className="text-sm text-secondary">
             Utilization, usage, maintenance, retirement, booking heatmap, and department allocations.
           </p>

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable, TableRow } from "@/components/shared/DataTable";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { Select } from "@/components/shared/Select";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/shared/Toast";
 import {
@@ -35,8 +37,6 @@ export default function AllocationsPage() {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
   const [transfers, setTransfers] = useState<TransferRequest[]>([]);
   const [conflict, setConflict] = useState<Conflict | null>(null);
-  const [transferAssetId, setTransferAssetId] = useState<number | "">("");
-  const [transferToId, setTransferToId] = useState<number | "">("");
   const [transferReason, setTransferReason] = useState("Required for active project handoff");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export default function AllocationsPage() {
     }
     const [nextEmployees, nextAllocations, nextTransfers] = await Promise.all([
       apiFetch<User[]>("/employees").catch(() => [] as User[]),
-      apiFetch<Allocation[]>("/allocations?status=active").catch(() => [] as Allocation[]),
+      apiFetch<Allocation[]>("/allocations").catch(() => [] as Allocation[]),
       apiFetch<TransferRequest[]>("/transfers").catch(() => [] as TransferRequest[]),
     ]);
     setEmployees(nextEmployees);
@@ -69,18 +69,6 @@ export default function AllocationsPage() {
   useEffect(() => {
     refresh();
   }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    if (transferToId === "" && user.role === "employee") {
-      setTransferToId(user.id);
-    }
-  }, [user, transferToId]);
-
-  const transferableAllocations = useMemo(
-    () => allocations.filter((row) => row.holder_user_id != null && row.holder_user_id !== user?.id),
-    [allocations, user?.id],
-  );
 
   async function submitAllocation(form: FormData) {
     setConflict(null);
@@ -110,53 +98,33 @@ export default function AllocationsPage() {
     }
   }
 
-  async function submitTransferRequest(assetId: number, toHolderId: number) {
+  async function submitTransfer(form: FormData) {
+    if (!conflict) return;
     setIsSubmitting(true);
     try {
       await apiFetch("/transfers", {
         method: "POST",
         body: JSON.stringify({
-          asset_id: assetId,
-          to_holder_id: toHolderId,
+          asset_id: conflict.asset_id,
+          to_holder_id: Number(form.get("to_holder_id")),
           reason: transferReason,
         }),
       });
       setConflict(null);
       showToast("Transfer request submitted", "success");
       await refresh();
-    } catch (error) {
-      const apiError = error as ApiError;
-      const detail = typeof apiError.detail === "string" ? apiError.detail : "Failed to submit transfer";
-      showToast(detail, "error");
+    } catch {
+      showToast("Failed to submit transfer", "error");
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  async function submitStandaloneTransfer(form: FormData) {
-    const assetId = Number(form.get("asset_id") || transferAssetId);
-    const toHolderId = Number(form.get("to_holder_id") || transferToId);
-    if (!assetId || !toHolderId) {
-      showToast("Pick an asset and transfer target", "error");
-      return;
-    }
-    await submitTransferRequest(assetId, toHolderId);
-  }
-
-  async function submitConflictTransfer(form: FormData) {
-    if (!conflict) return;
-    await submitTransferRequest(conflict.asset_id, Number(form.get("to_holder_id")));
-  }
-
   async function actOnTransfer(id: number, action: "approve" | "complete" | "reject") {
     setMessage(null);
-    try {
-      await apiFetch(`/transfers/${id}/${action}`, { method: "POST" });
-      setMessage(`Transfer ${action}d`);
-      await refresh();
-    } catch {
-      showToast(`Failed to ${action} transfer`, "error");
-    }
+    await apiFetch(`/transfers/${id}/${action}`, { method: "POST" });
+    setMessage(`Transfer ${action}d`);
+    await refresh();
   }
 
   async function submitReturn() {
@@ -181,113 +149,56 @@ export default function AllocationsPage() {
     return asset ? `${asset.tag} ${asset.name}` : `#${id}`;
   };
 
-  function prefillTransfer(allocation: Allocation) {
-    setTransferAssetId(allocation.asset_id);
-    if (user?.id) setTransferToId(user.id);
-    setTransferReason("Requesting transfer of allocated asset");
-  }
-
   return (
     <div className="grid gap-6">
       <header>
-        <h1 className="text-xl font-semibold">Allocation & transfer</h1>
-        <p className="text-sm text-secondary">
-          Direct re-allocation is blocked when an active holder exists. Request a transfer instead.
-        </p>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Allocation & transfer</h1>
+        <p className="text-sm text-secondary">Direct re-allocation is blocked when an active holder exists.</p>
       </header>
 
-      {message ? <p className="text-sm text-green">{message}</p> : null}
+      {message ? <p className="text-sm text-brand">{message}</p> : null}
       {loadError ? <p className="text-sm text-red">{loadError}</p> : null}
 
       {canManage ? (
-        <form
-          className="card-surface grid gap-3 p-4 md:grid-cols-4"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            await submitAllocation(new FormData(event.currentTarget));
-          }}
-        >
-          <FormField label="Asset">
-            <select className={inputClass} name="asset_id">
-              {assets.map((asset) => (
-                <option key={asset.id} value={asset.id}>
-                  {asset.tag} {asset.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="Holder">
-            <select className={inputClass} name="holder_user_id">
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="Expected return">
-            <input className={inputClass} name="expected_return_date" type="date" />
-          </FormField>
-          <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
-            {isSubmitting ? "Allocating..." : "Allocate"}
-          </button>
-        </form>
-      ) : null}
-
-      {canRequestTransfer ? (
-        <form
-          className="card-surface grid gap-3 p-4 md:grid-cols-4"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            await submitStandaloneTransfer(new FormData(event.currentTarget));
-          }}
-        >
-          <FormField label="Request transfer of">
-            <select
-              className={inputClass}
-              name="asset_id"
-              value={transferAssetId}
-              onChange={(event) => setTransferAssetId(event.target.value ? Number(event.target.value) : "")}
-              required
-            >
-              <option value="">Select allocated asset</option>
-              {transferableAllocations.map((allocation) => (
-                <option key={allocation.id} value={allocation.asset_id}>
-                  {assetLabel(allocation.asset_id)} — held by {employeeName(allocation.holder_user_id)}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="Transfer to">
-            <select
-              className={inputClass}
-              name="to_holder_id"
-              value={transferToId}
-              onChange={(event) => setTransferToId(event.target.value ? Number(event.target.value) : "")}
-              required
-            >
-              <option value="">Select employee</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name}
-                  {employee.id === user?.id ? " (you)" : ""}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label="Reason">
-            <input
-              className={inputClass}
-              value={transferReason}
-              onChange={(event) => setTransferReason(event.target.value)}
-              required
-            />
-          </FormField>
-          <button disabled={isSubmitting || transferableAllocations.length === 0} className={`${buttonClass} mt-6`}>
-            {isSubmitting ? "Submitting..." : "Request transfer"}
-          </button>
-        </form>
-      ) : null}
+      <form
+        className="card-surface grid gap-3 p-4 md:grid-cols-4"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          await submitAllocation(new FormData(event.currentTarget));
+        }}
+      >
+        <FormField label="Asset">
+          <Select
+            key={`alloc-asset-${assets[0]?.id ?? "x"}`}
+            name="asset_id"
+            options={assets.map((asset) => ({
+              value: String(asset.id),
+              label: `${asset.tag} ${asset.name}`,
+            }))}
+            defaultValue={assets[0] ? String(assets[0].id) : ""}
+          />
+        </FormField>
+        <FormField label="Holder">
+          <Select
+            key={`alloc-holder-${employees[0]?.id ?? "x"}`}
+            name="holder_user_id"
+            options={employees.map((employee) => ({
+              value: String(employee.id),
+              label: employee.name,
+            }))}
+            defaultValue={employees[0] ? String(employees[0].id) : ""}
+          />
+        </FormField>
+        <FormField label="Expected return">
+          <DatePicker name="expected_return_date" placeholder="Expected return" />
+        </FormField>
+        <button disabled={isSubmitting} className={`${buttonClass} mt-6`}>
+          {isSubmitting ? "Allocating..." : "Allocate"}
+        </button>
+      </form>
+      ) : (
+        <p className="text-sm text-secondary">You can submit a transfer request when an allocation conflict appears.</p>
+      )}
 
       {conflict && canRequestTransfer ? (
         <div className="grid gap-4">
@@ -300,24 +211,23 @@ export default function AllocationsPage() {
             className="card-surface grid gap-3 p-4 md:grid-cols-[1fr_2fr_auto]"
             onSubmit={async (event) => {
               event.preventDefault();
-              await submitConflictTransfer(new FormData(event.currentTarget));
+              await submitTransfer(new FormData(event.currentTarget));
             }}
           >
             <FormField label="Transfer to">
-              <select className={inputClass} name="to_holder_id" defaultValue={user?.id}>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="to_holder_id"
+                options={employees.map((employee) => ({
+                  value: String(employee.id),
+                  label: employee.name,
+                }))}
+                defaultValue={employees[0] ? String(employees[0].id) : ""}
+              />
             </FormField>
             <FormField label="Reason">
               <input className={inputClass} value={transferReason} onChange={(event) => setTransferReason(event.target.value)} />
             </FormField>
-            <button disabled={isSubmitting} className={`${secondaryButtonClass} mt-6`}>
-              {isSubmitting ? "Submitting..." : "Submit transfer"}
-            </button>
+            <button disabled={isSubmitting} className={`${secondaryButtonClass} mt-6`}>{isSubmitting ? "Submitting..." : "Submit transfer"}</button>
           </form>
         </div>
       ) : null}
@@ -335,28 +245,21 @@ export default function AllocationsPage() {
                 <StatusPill value={allocation.status} />
               </td>
               <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-2">
-                  {canRequestTransfer && allocation.holder_user_id !== user?.id ? (
-                    <button className="text-xs text-blue hover:underline" type="button" onClick={() => prefillTransfer(allocation)}>
-                      Request transfer
-                    </button>
-                  ) : null}
-                  {canReturn &&
-                  (allocation.status === "active" || allocation.status === "overdue") &&
-                  (canManage || allocation.holder_user_id === user?.id) ? (
-                    <button
-                      className="text-xs text-green hover:underline"
-                      type="button"
-                      onClick={() => {
-                        setReturnTarget(allocation);
-                        setReturnNotes("");
-                        setReturnCondition("good");
-                      }}
-                    >
-                      Return
-                    </button>
-                  ) : null}
-                </div>
+                {canReturn &&
+                (allocation.status === "active" || allocation.status === "overdue") &&
+                (canManage || allocation.holder_user_id === user?.id) ? (
+                  <button
+                    className="text-xs text-brand hover:underline"
+                    type="button"
+                    onClick={() => {
+                      setReturnTarget(allocation);
+                      setReturnNotes("");
+                      setReturnCondition("good");
+                    }}
+                  >
+                    Return
+                  </button>
+                ) : null}
               </td>
             </TableRow>
           ))}
@@ -384,7 +287,7 @@ export default function AllocationsPage() {
                 <div className="flex flex-wrap gap-2">
                   {canApproveTransfer && transfer.status === "requested" ? (
                     <>
-                      <button className="text-xs text-green hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
+                      <button className="text-xs text-brand hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "approve")}>
                         Approve
                       </button>
                       <button className="text-xs text-red hover:underline" type="button" onClick={() => actOnTransfer(transfer.id, "reject")}>
@@ -401,9 +304,6 @@ export default function AllocationsPage() {
                       Complete reallocation
                     </button>
                   ) : null}
-                  {!canApproveTransfer && (transfer.status === "requested" || transfer.status === "approved") ? (
-                    <span className="text-xs text-muted">Awaiting manager</span>
-                  ) : null}
                 </div>
               </td>
             </TableRow>
@@ -418,11 +318,15 @@ export default function AllocationsPage() {
             <p className="mb-4 text-sm text-secondary">{assetLabel(returnTarget.asset_id)}</p>
             <div className="grid gap-3">
               <FormField label="Condition">
-                <select className={inputClass} value={returnCondition} onChange={(event) => setReturnCondition(event.target.value)}>
-                  <option value="good">Good</option>
-                  <option value="fair">Fair</option>
-                  <option value="damaged">Damaged</option>
-                </select>
+                <Select
+                  value={returnCondition}
+                  onChange={setReturnCondition}
+                  options={[
+                    { value: "good", label: "Good" },
+                    { value: "fair", label: "Fair" },
+                    { value: "damaged", label: "Damaged" },
+                  ]}
+                />
               </FormField>
               <FormField label="Condition notes">
                 <textarea

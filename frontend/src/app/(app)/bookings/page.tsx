@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ConflictBanner } from "@/components/shared/ConflictBanner";
 import { DataTable } from "@/components/shared/DataTable";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { buttonClass, FormField, inputClass, secondaryButtonClass } from "@/components/shared/FormField";
+import { Select } from "@/components/shared/Select";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { TimePicker } from "@/components/shared/TimePicker";
 import { useToast } from "@/components/shared/Toast";
 import { apiFetch, type ApiError, type Asset, type Booking } from "@/lib/api";
 
@@ -219,7 +222,7 @@ export default function BookingsPage() {
   return (
     <div className="grid gap-6">
       <header>
-        <h1 className="text-xl font-semibold">Resource booking</h1>
+        <h1 className="font-display text-[1.85rem] tracking-tight">Resource booking</h1>
         <p className="text-sm text-secondary">Overlapping slots are rejected by the Postgres range constraint.</p>
       </header>
 
@@ -231,27 +234,27 @@ export default function BookingsPage() {
         }}
       >
         <FormField label="Resource">
-          <select
-            className={inputClass}
-            value={resourceId}
-            onChange={(event) => setResourceId(event.target.value ? Number(event.target.value) : "")}
-          >
-            {resources.length === 0 ? <option value="">No bookable resources</option> : null}
-            {resources.map((resource) => (
-              <option key={resource.id} value={resource.id}>
-                {resource.tag} — {resource.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={resourceId === "" ? "" : String(resourceId)}
+            onChange={(next) => setResourceId(next ? Number(next) : "")}
+            options={
+              resources.length === 0
+                ? [{ value: "", label: "No bookable resources" }]
+                : resources.map((resource) => ({
+                    value: String(resource.id),
+                    label: `${resource.tag} — ${resource.name}`,
+                  }))
+            }
+          />
         </FormField>
         <FormField label="Date">
-          <input className={inputClass} type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
+          <DatePicker value={date} onChange={setDate} required placeholder="Booking date" />
         </FormField>
         <FormField label="Start">
-          <input className={inputClass} type="time" value={start} onChange={(event) => setStart(event.target.value)} required />
+          <TimePicker value={start} onChange={setStart} required placeholder="Start time" />
         </FormField>
         <FormField label="End">
-          <input className={inputClass} type="time" value={end} onChange={(event) => setEnd(event.target.value)} required />
+          <TimePicker value={end} onChange={setEnd} required placeholder="End time" />
         </FormField>
         <button className={`${buttonClass} mt-6`} disabled={!resourceId || isSubmitting}>
           {isSubmitting ? "Booking..." : "Book a slot"}
@@ -316,7 +319,7 @@ export default function BookingsPage() {
               label = `Booked — ${booked.booked_by_name ?? "user"}`;
               detail = `${formatClock(booked.start)}–${formatClock(booked.end)}`;
             } else if (requestOnly) {
-              rowClass = "border-green bg-green-bg";
+              rowClass = "border-brand bg-brand-bg";
               label = "Requested";
               detail = `${start}–${end}`;
             }
@@ -382,13 +385,13 @@ export default function BookingsPage() {
             <h3 className="mb-3 text-base font-medium">Reschedule booking #{rescheduleId}</h3>
             <div className="grid gap-3">
               <FormField label="Date">
-                <input className={inputClass} type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} />
+                <DatePicker value={rescheduleDate} onChange={setRescheduleDate} placeholder="Date" />
               </FormField>
               <FormField label="Start">
-                <input className={inputClass} type="time" value={rescheduleStart} onChange={(e) => setRescheduleStart(e.target.value)} />
+                <TimePicker value={rescheduleStart} onChange={setRescheduleStart} placeholder="Start time" />
               </FormField>
               <FormField label="End">
-                <input className={inputClass} type="time" value={rescheduleEnd} onChange={(e) => setRescheduleEnd(e.target.value)} />
+                <TimePicker value={rescheduleEnd} onChange={setRescheduleEnd} placeholder="End time" />
               </FormField>
               <div className="flex gap-2">
                 <button type="button" className={buttonClass} onClick={() => void submitReschedule()}>

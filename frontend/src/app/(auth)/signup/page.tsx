@@ -21,6 +21,7 @@ export default function SignupPage() {
     const password = String(data.get("password"));
     if (password !== String(data.get("confirm"))) {
       setError("Passwords do not match");
+      setIsSubmitting(false);
       return;
     }
     try {
@@ -34,18 +35,16 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="relative grid min-h-screen place-items-center bg-bg px-4">
-      <div className="absolute right-4 top-4">
+    <main className="auth-panel relative grid min-h-screen place-items-center px-4 py-10">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
         <ThemeSwitcher />
       </div>
-      <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
-        <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
-          <h1 className="text-xl font-semibold">
-            <span className="text-heading">Create</span> <span className="text-blue">account</span>
-          </h1>
+      <form onSubmit={submit} className="card-surface animate-fade-up w-full max-w-[440px] p-8">
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.svg" alt="AssetFlow Logo" className="h-9 w-auto" />
+          <h1 className="font-display text-2xl tracking-tight">Create account</h1>
         </div>
-        <p className="mt-1 text-sm text-secondary">New users start with employee access</p>
+        <p className="mt-1.5 text-sm text-secondary">New users start with employee access</p>
         <div className="mt-6 grid gap-4">
           <FormField label="Name">
             <input className={inputClass} name="name" required />
@@ -64,11 +63,10 @@ export default function SignupPage() {
         <button disabled={isSubmitting} className={`${buttonClass} mt-6 w-full`}>
           {isSubmitting ? "Creating account..." : "Sign up"}
         </button>
-        <Link href="/login" className="mt-4 block text-center text-xs text-green">
+        <Link href="/login" className="mt-4 block text-center text-xs font-medium text-brand hover:brightness-110">
           Back to sign in
         </Link>
       </form>
     </main>
   );
 }
-
