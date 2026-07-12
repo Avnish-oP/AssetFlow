@@ -81,9 +81,36 @@ export default function AssetDetailPage() {
           <div className="text-sm">{asset.category_id ?? "—"}</div>
         </div>
         <div>
-          <div className="text-xs text-secondary">Photo</div>
-          <div className="truncate text-sm text-secondary">{asset.photo_url ?? "—"}</div>
+          <div className="text-xs text-secondary">Location</div>
+          <div className="text-sm">{asset.location ?? "—"}</div>
         </div>
+        {"acquisition_date" in asset && (asset as Record<string, unknown>).acquisition_date ? (
+          <div>
+            <div className="text-xs text-secondary">Acquired</div>
+            <div className="text-sm">{String((asset as Record<string, unknown>).acquisition_date)}</div>
+          </div>
+        ) : null}
+        {"acquisition_cost" in asset && (asset as Record<string, unknown>).acquisition_cost != null ? (
+          <div>
+            <div className="text-xs text-secondary">Cost</div>
+            <div className="text-sm">₹{Number((asset as Record<string, unknown>).acquisition_cost).toLocaleString()}</div>
+          </div>
+        ) : null}
+        {asset.photo_url ? (
+          <div className="md:col-span-4">
+            <div className="text-xs text-secondary mb-1">Photo</div>
+            <img
+              src={asset.photo_url}
+              alt={asset.name}
+              className="h-40 w-auto max-w-full rounded-lg border border-line object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+                (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
+              }}
+            />
+            <p className="hidden text-xs text-secondary">{asset.photo_url}</p>
+          </div>
+        ) : null}
       </section>
 
       <section>
