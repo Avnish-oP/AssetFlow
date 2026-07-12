@@ -15,7 +15,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-assetflow}
       POSTGRES_DB: ${POSTGRES_DB:-assetflow}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5434}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Runs once, only on first container creation (empty data dir) — enables the

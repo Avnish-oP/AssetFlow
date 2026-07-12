@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://assetflow:assetflow@localhost:5432/assetflow"
+    database_url: str = "postgresql+asyncpg://assetflow:assetflow@localhost:5434/assetflow"
     redis_url: str = "redis://localhost:6379/0"
     minio_endpoint: str = "localhost:9000"
     minio_bucket: str = "assetflow-assets"
