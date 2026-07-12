@@ -39,6 +39,7 @@
   --color-amber-bg: var(--accent-amber-bg);
   --color-blue: var(--accent-blue);
   --color-blue-bg: var(--accent-blue-bg);
+  --color-heading: var(--heading);
   --font-sans: -apple-system, Inter, Segoe UI, sans-serif;
   --radius-card: var(--radius-card);
   --radius-control: var(--radius-control);
@@ -52,6 +53,12 @@ body {
   background: var(--bg);
   color: var(--text-primary);
   font-family: -apple-system, Inter, Segoe UI, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--heading);
 }
 
 button,

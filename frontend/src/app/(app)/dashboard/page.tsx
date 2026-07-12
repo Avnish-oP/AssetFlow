@@ -139,7 +139,7 @@ export default function DashboardPage() {
         ))}
       </section>
       <section className="grid gap-6 xl:grid-cols-2">
-        <div>
+        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
           <h2 className="mb-3 text-base font-medium">Recent activity</h2>
           <DataTable headers={["Event", "Actor", "Status"]}>
             {recentActivity.length === 0 ? (
@@ -161,7 +161,7 @@ export default function DashboardPage() {
             )}
           </DataTable>
         </div>
-        <div>
+        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
           <h2 className="mb-3 text-base font-medium">Upcoming returns</h2>
           <DataTable headers={["Asset", "Holder", "Due", "Status"]}>
             {upcomingReturns.length === 0 ? (
