@@ -172,12 +172,12 @@ VALUES ('Engineering'), ('Facilities'), ('Finance')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO users(name, email, password_hash, role, department_id)
-SELECT 'Admin User', 'admin@assetflow.local', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'admin', d.id
+SELECT 'Admin User', 'admin@assetflow.dev', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'admin', d.id
 FROM departments d WHERE d.name = 'Engineering'
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users(name, email, password_hash, role, department_id)
-SELECT 'Priya Shah', 'priya@assetflow.local', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'employee', d.id
+SELECT 'Priya Shah', 'priya@assetflow.dev', '$2b$12$.01E7gugQRQnWmC4NM7Xw.hh3ZjvylcAZm04tq7JS/xHpVkjk4aIG', 'employee', d.id
 FROM departments d WHERE d.name = 'Engineering'
 ON CONFLICT (email) DO NOTHING;
 
