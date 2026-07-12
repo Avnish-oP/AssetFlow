@@ -35,7 +35,12 @@ export default function SignupPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-bg px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-line bg-surface p-6">
-        <h1 className="text-xl font-semibold">Create account</h1>
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
+          <h1 className="text-xl font-semibold">
+            <span className="text-heading">Create</span> <span className="text-blue">account</span>
+          </h1>
+        </div>
         <p className="mt-1 text-sm text-secondary">New users start with employee access</p>
         <div className="mt-6 grid gap-4">
           <FormField label="Name">

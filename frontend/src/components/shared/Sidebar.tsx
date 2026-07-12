@@ -138,9 +138,11 @@ export function Sidebar() {
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[248px] -translate-x-full flex-col border-r border-line bg-surface shadow-xl transition-transform lg:translate-x-0 lg:shadow-none ${open ? "translate-x-0" : ""}`}>
       <div className="border-b border-line px-4 py-5">
         <div className="flex items-center gap-2.5">
-          <div className="grid h-7 w-7 place-items-center rounded-md bg-amber-bg text-xs font-semibold text-heading">AF</div>
+          <img src="/logo.svg" alt="AssetFlow Logo" className="h-10 w-auto" />
           <div>
-            <div className="text-lg font-semibold leading-tight text-heading">AssetFlow</div>
+            <div className="text-lg font-semibold leading-tight">
+              <span className="text-heading">Asset</span><span className="text-blue">Flow</span>
+            </div>
             <div className="text-xs text-secondary">Operations console</div>
           </div>
         </div>
