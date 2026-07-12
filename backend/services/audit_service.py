@@ -185,8 +185,7 @@ async def verify_item(
     asset = await db.get(Asset, item.asset_id)
     if asset:
         if payload.verification_status == "missing":
-            assert_transition(asset.status, "lost", "asset")
-            asset.status = "lost"
+            # Lost status is applied on cycle close (PS / README §9 step 8).
             await log_activity(
                 db,
                 actor_id,
@@ -223,6 +222,27 @@ async def close_cycle(db: AsyncSession, cycle_id: int) -> AuditCycle:
         raise HTTPException(
             status_code=400,
             detail=f"Cannot close cycle with {counts['pending_count']} pending items",
+        )
+
+    missing_rows = (
+        await db.execute(
+            select(AuditItem, Asset)
+            .join(Asset, AuditItem.asset_id == Asset.id)
+            .where(AuditItem.cycle_id == cycle_id, AuditItem.verification_status == "missing")
+        )
+    ).all()
+    for item, asset in missing_rows:
+        if asset.status == "lost":
+            continue
+        assert_transition(asset.status, "lost", "asset")
+        asset.status = "lost"
+        await log_activity(
+            db,
+            cycle.created_by,
+            "audit_closed_lost",
+            "audit_item",
+            item.id,
+            {"asset_id": asset.id, "tag": asset.tag, "cycle_id": cycle_id},
         )
 
     cycle.status = "closed"

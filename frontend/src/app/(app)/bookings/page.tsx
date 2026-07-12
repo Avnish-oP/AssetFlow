@@ -293,7 +293,9 @@ export default function BookingsPage() {
               <td className="px-4 py-3 font-medium">{resourceName}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.start).toLocaleString()}</td>
               <td className="px-4 py-3 text-secondary">{new Date(booking.end).toLocaleString()}</td>
-              <td className="px-4 py-3"><StatusPill value={booking.status} /></td>
+              <td className="px-4 py-3">
+                <StatusPill value={booking.status} />
+              </td>
               <td className="px-4 py-3">
                 {canCancel ? (
                   <button type="button" className={secondaryButtonClass} onClick={() => void cancelBooking(booking)}>

@@ -245,7 +245,7 @@ All seeded accounts use password `password`:
 2. Register a new asset → appears `Available` with an auto-generated tag.
 3. Allocate AF-0114 to Priya Shah.
 4. Switch user, try to allocate AF-0114 again → **blocked**, "currently held by Priya Shah (Engineering)", Transfer Request CTA shown.
-5. Submit transfer request → approve as Asset Manager → allocation history updates automatically.
+5. Submit transfer request → approve as Asset Manager → **Complete** to reallocate (allocation history updates on Complete).
 6. Book Room B2 9:00–10:00 → attempt 9:30–10:30 → **rejected live**, note this is enforced at the database layer, not just client validation.
 7. Raise a maintenance request → approve → asset auto-flips to `Under Maintenance` → drag kanban card to Resolved → asset auto-flips back to `Available`.
 8. Create an audit cycle, assign an auditor, mark one asset Missing → close cycle → discrepancy report auto-generates → asset status flips to `Lost`.

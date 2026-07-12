@@ -47,7 +47,7 @@ function KanbanCard({
   item: MaintenanceRequest;
   dimmed?: boolean;
   draggable: boolean;
-  onReject?: (item: MaintenanceRequest) => void;
+  onReject?: (id: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(item.id),
@@ -79,11 +79,11 @@ function KanbanCard({
       {item.status === "pending" && onReject ? (
         <button
           type="button"
-          className={`${secondaryButtonClass} mt-2 w-full`}
+          className={`${secondaryButtonClass} mt-2 w-full text-xs`}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation();
-            onReject(item);
+            onReject(item.id);
           }}
         >
           Reject
@@ -102,7 +102,7 @@ function KanbanColumn({
   status: string;
   items: MaintenanceRequest[];
   draggable: boolean;
-  onReject?: (item: MaintenanceRequest) => void;
+  onReject?: (id: number) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status, disabled: !draggable });
   return (
@@ -201,11 +201,11 @@ export default function MaintenancePage() {
     }
   }
 
-  async function rejectRequest(item: MaintenanceRequest) {
+  async function rejectRequest(requestId: number) {
     if (!canAdvance) return;
     setError(null);
     try {
-      await apiFetch(`/maintenance/${item.id}/status`, {
+      await apiFetch(`/maintenance/${requestId}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: "rejected" }),
       });
@@ -239,8 +239,8 @@ export default function MaintenancePage() {
         <div>
           <h1 className="text-xl font-semibold">Maintenance</h1>
           <p className="text-sm text-secondary">
-            Raising a request flips the asset to maintenance. Drag cards one column at a time through the workflow to
-            resolve.
+            Approve flips the asset to under maintenance. Advance cards one column at a time; resolve restores
+            available or allocated.
           </p>
         </div>
         <button className={buttonClass} type="button" onClick={() => setShowForm(true)} disabled={!canRaise}>
@@ -318,7 +318,7 @@ export default function MaintenancePage() {
       {empty && !showForm ? (
         <EmptyState
           title="No maintenance requests yet"
-          description="Raise a request to put an asset under maintenance."
+          description="Raise a request; approval flips the asset to under maintenance."
           action="Raise request"
           onAction={() => setShowForm(true)}
         />

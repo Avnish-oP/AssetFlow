@@ -30,7 +30,7 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 - [x] Transfer: requested → approved → complete (re-allocates on **complete**)
 - [x] Return flow: condition notes → asset Available
 - [x] Maintenance kanban + reject + asset status auto-flip (approve → maintenance, resolve → available)
-- [x] Audit cycle: assign auditors, missing→Lost, discrepancy report, close
+- [x] Audit cycle: assign auditors, verify / missing → discrepancy; **Lost on close**; report
 
 **Phase 3 — Reports, notifications, dashboard**
 - [x] Dashboard /reports/summary KPIs + overdue banner + quick actions
@@ -39,10 +39,17 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 - [x] Reports: utilization, usage, maintenance frequency, retirement, **booking heatmap**, **dept allocations**, CSV export
 
 **Phase 4 — Integration & demo**
-- [x] App pages on live API
-- [x] `backend/seed.py` demo dataset (`*@assetflow.dev` / `password`)
+- [x] App pages on live API (no mock datasets; assets mock fallback removed)
+- [x] `backend/seed.py` demo dataset (`*@assetflow.dev` / `password`) + `seeds/smoke_snapshot.json`
 - [x] Role-based UI gating for all 4 roles (`lib/roles.ts` + Sidebar/page actions)
-- [ ] Demo script (README §9) rehearsed end-to-end in the UI — **Phase 5**
+- [x] Demo script (README §9) rehearsed end-to-end — **Phase 5**
+
+**Phase 5 — PS fidelity + §9 E2E**
+- [x] Maintenance flips to under maintenance on **approve** (not raise)
+- [x] Audit `Lost` applied on cycle **close** (not mark-missing)
+- [x] README §9 step 5: Approve then **Complete** to reallocate
+- [x] UI polish: dashboard quick actions, org parent/head + category fields, asset register fields, booking cancel, maintenance reject
+- [x] Full §9 API E2E + employee Reports/Audits 403 spot-check
 
 ---
 
@@ -64,9 +71,9 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 
 ## Remaining work (priority)
 
-1. Full README §9 E2E rehearsal in the UI (Phase 5)
-2. Optional: MinIO photo upload (photo_url text fields work today)
-3. Optional: OpenAPI-generated TS client (hand-written `api.ts` is sufficient)
+1. Optional: MinIO photo upload (photo_url text fields work today)
+2. Optional: OpenAPI-generated TS client (hand-written `api.ts` is sufficient)
+3. Optional: Redis cache; booking reminders / reschedule UI
 
 ---
 
@@ -74,11 +81,11 @@ Read `README.md` first — architecture and *why*. This file tracks *current sta
 
 *(append-only, newest on top)*
 
-- 2026-07-12 — seed split: `seed.py` loads `seeds/smoke_snapshot.json` (shared smoke world); `seed.py --clean` for live §9 walkthrough; `seed_export.py` re-captures local DB for collaborators.
-- 2026-07-12 — closed PS gaps: booking cancel UI; reports heatmap + dept allocation; org-setup head/parent/custom fields; maintenance Reject CTA; login demo defaults; dashboard quick actions + overdue banner; asset detail page.
-- 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; `maintenance→allocated` transition allowed; transfer Complete CTA clarified. Full §9 E2E deferred to Phase 5. MinIO/OpenAPI still deferred.
-- 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates (skipped Redis client); APScheduler overdue scanner every 60s; notifications poll every 25s; recharts on Reports; CSV export client-side.
-- 2026-07-12 — cleaned AGENT.md: dropped stale `apps/api`/`apps/web` ownership table; Phase 2–3 marked done.
+- 2026-07-12 — merge origin/main: kept approve→maintenance flip + reject/notify; kept local heatmap/dept reports, smoke seed snapshot, asset detail links; combined org-setup head/parent + category fields.
+- 2026-07-12 — seed split: `seed.py` loads `seeds/smoke_snapshot.json`; `seed.py --clean` for live §9 walkthrough; `seed_export.py` re-captures local DB.
+- 2026-07-12 — Phase 5: maintenance asset flip on approve; audit Lost on close; README §9 step 5 Complete wording; §9 E2E rehearsed.
+- 2026-07-12 — Phase 4: frontend role matrix in `lib/roles.ts` + Sidebar/page gating; assets mock removed; transfer Complete CTA clarified.
+- 2026-07-12 — Phase 3: in-process 10s TTL for `/reports` aggregates; APScheduler overdue scanner; notifications poll; recharts + CSV.
 - 2026-07-12 — `backend/seed.py` is demo data source; `init.sql` is schema-only.
 - 2026-07-12 — repo layout is `backend/` + `frontend/` (not README's `apps/*` paths).
 - 2026-07-12 — docker-compose = postgres/redis/minio only; FastAPI runs locally via uvicorn.

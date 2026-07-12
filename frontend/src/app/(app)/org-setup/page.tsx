@@ -69,15 +69,15 @@ export default function OrgSetupPage() {
 
   async function createDepartment(form: FormData) {
     const name = form.get("name") as string;
-    const headValue = String(form.get("head_id") || "");
     const parentValue = String(form.get("parent_department_id") || "");
+    const headValue = String(form.get("head_id") || "");
     try {
       const item = await apiFetch<Department>("/departments", {
         method: "POST",
         body: JSON.stringify({
           name,
-          head_id: headValue ? Number(headValue) : null,
           parent_department_id: parentValue ? Number(parentValue) : null,
+          head_id: headValue ? Number(headValue) : null,
         }),
       });
       setDepartments((current) => [item, ...current]);
@@ -118,16 +118,10 @@ export default function OrgSetupPage() {
 
   async function createCategory(form: FormData) {
     const name = form.get("name") as string;
-    const customRaw = String(form.get("custom_fields") || "").trim();
-    let custom_fields: Record<string, unknown> = {};
-    if (customRaw) {
-      try {
-        custom_fields = JSON.parse(customRaw) as Record<string, unknown>;
-      } catch {
-        showToast('Custom fields must be JSON, e.g. {"warranty_months": 24}', "error");
-        throw new Error();
-      }
-    }
+    const fieldKey = String(form.get("field_key") || "").trim();
+    const fieldValue = String(form.get("field_value") || "").trim();
+    const custom_fields: Record<string, string> = {};
+    if (fieldKey) custom_fields[fieldKey] = fieldValue || "";
     try {
       const item = await apiFetch<Category>("/categories", {
         method: "POST",
@@ -245,22 +239,22 @@ export default function OrgSetupPage() {
             <FormField label="Department name">
               <input className={inputClass} name="name" required />
             </FormField>
-            <FormField label="Department head">
-              <select className={inputClass} name="head_id" defaultValue="">
-                <option value="">Unassigned</option>
-                {employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
-            </FormField>
             <FormField label="Parent department">
               <select className={inputClass} name="parent_department_id" defaultValue="">
                 <option value="">None</option>
                 {departments.map((department) => (
                   <option key={department.id} value={department.id}>
                     {department.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Department head">
+              <select className={inputClass} name="head_id" defaultValue="">
+                <option value="">Unassigned</option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name}
                   </option>
                 ))}
               </select>
@@ -329,7 +323,7 @@ export default function OrgSetupPage() {
       {tab === "categories" ? (
         <>
           <form
-            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-3"
+            className="grid gap-3 rounded-lg border border-line bg-surface p-4 md:grid-cols-4"
             onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
@@ -344,8 +338,11 @@ export default function OrgSetupPage() {
             <FormField label="Category name">
               <input className={inputClass} name="name" required />
             </FormField>
-            <FormField label='Custom fields JSON (e.g. {"warranty_months": 24})'>
-              <input className={inputClass} name="custom_fields" placeholder='{"warranty_months": 24}' />
+            <FormField label="Custom field key">
+              <input className={inputClass} name="field_key" placeholder="e.g. warranty_months" />
+            </FormField>
+            <FormField label="Custom field value">
+              <input className={inputClass} name="field_value" placeholder="e.g. 24" />
             </FormField>
             <button className={`${buttonClass} mt-6`}>Add category</button>
           </form>

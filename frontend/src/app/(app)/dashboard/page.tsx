@@ -22,6 +22,9 @@ const POLL_MS = 25_000;
 export default function DashboardPage() {
   const { user } = useAuth();
   const canSeeKpis = can(user?.role, "dashboard_kpis");
+  const canWriteAssets = can(user?.role, "assets_write");
+  const canRaise = can(user?.role, "maintenance_raise");
+  const canBook = can(user?.role, "bookings");
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [returns, setReturns] = useState<
@@ -83,10 +86,10 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <div className="grid gap-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <div className="mx-auto grid max-w-[1600px] gap-6 pt-14 lg:pt-0">
+      <header className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-line bg-surface-raised px-5 py-4 sm:px-6">
         <div>
-          <h1 className="text-xl font-semibold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="text-sm text-secondary">
             {loading
               ? "Loading operational status…"
@@ -104,7 +107,7 @@ export default function DashboardPage() {
       </header>
 
       {canSeeKpis ? (
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <section className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
         {kpis.map((kpi) => (
           <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} accentColor={kpi.accentColor} />
         ))}
@@ -142,7 +145,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <div>
+        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-medium">Unread notifications</h2>
             <a href="/notifications" className="text-xs text-secondary hover:text-primary">
@@ -165,7 +168,7 @@ export default function DashboardPage() {
             </DataTable>
           )}
         </div>
-        <div>
+        <div className="min-w-0 rounded-xl border border-line bg-surface-raised p-4 sm:p-5">
           <h2 className="mb-3 text-base font-medium">Upcoming returns</h2>
           <DataTable headers={["Asset", "Holder", "Due", "Status"]}>
             {returns.length === 0 ? (
@@ -190,10 +193,25 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button className={secondaryButtonClass} type="button" onClick={() => load()}>
           Refresh now
         </button>
+        {canWriteAssets ? (
+          <a className={buttonClass} href="/assets">
+            Register asset
+          </a>
+        ) : null}
+        {canBook ? (
+          <a className={secondaryButtonClass} href="/bookings">
+            Book resource
+          </a>
+        ) : null}
+        {canRaise ? (
+          <a className={secondaryButtonClass} href="/maintenance">
+            Raise maintenance
+          </a>
+        ) : null}
         {canSeeKpis ? (
           <a className={buttonClass} href="/reports">
             Open reports

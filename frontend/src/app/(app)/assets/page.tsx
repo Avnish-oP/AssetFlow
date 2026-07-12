@@ -53,14 +53,15 @@ export default function AssetsPage() {
 
   async function createAsset(form: FormData) {
     const categoryValue = String(form.get("category_id") || "");
-    const costValue = String(form.get("acquisition_cost") || "");
+    const costValue = String(form.get("acquisition_cost") || "").trim();
+    const dateValue = String(form.get("acquisition_date") || "").trim();
     const payload = {
       name: form.get("name"),
       category_id: categoryValue ? Number(categoryValue) : null,
       serial_number: form.get("serial_number") || null,
-      acquisition_date: form.get("acquisition_date") || null,
+      acquisition_date: dateValue || null,
       acquisition_cost: costValue ? Number(costValue) : null,
-      condition: form.get("condition") || "good",
+      condition: String(form.get("condition") || "good"),
       location: form.get("location") || null,
       photo_url: form.get("photo_url") || null,
       is_bookable: form.get("is_bookable") === "on",
@@ -91,7 +92,7 @@ export default function AssetsPage() {
       {canWrite ? (
         <div className="card-surface grid gap-4 p-4">
           <form
-            className="grid gap-3 md:grid-cols-4"
+            className="grid gap-3 md:grid-cols-3 lg:grid-cols-4"
             onSubmit={async (event) => {
               event.preventDefault();
               const form = event.currentTarget;
@@ -117,6 +118,7 @@ export default function AssetsPage() {
             </FormField>
             <FormField label="Condition">
               <select className={inputClass} name="condition" defaultValue="good">
+                <option value="new">New</option>
                 <option value="good">Good</option>
                 <option value="fair">Fair</option>
                 <option value="damaged">Damaged</option>
@@ -151,7 +153,7 @@ export default function AssetsPage() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <select className={inputClass} value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select className={`${inputClass} max-w-[180px]`} value={status} onChange={(event) => setStatus(event.target.value)}>
           <option value="">All statuses</option>
           <option value="available">Available</option>
           <option value="allocated">Allocated</option>
@@ -159,6 +161,7 @@ export default function AssetsPage() {
           <option value="maintenance">Maintenance</option>
           <option value="lost">Lost</option>
           <option value="retired">Retired</option>
+          <option value="disposed">Disposed</option>
         </select>
         <select className={inputClass} value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
           <option value="">All categories</option>
@@ -174,19 +177,21 @@ export default function AssetsPage() {
           value={location}
           onChange={(event) => setLocation(event.target.value)}
         />
-        {loadError ? (
-          <button className={secondaryButtonClass} type="button" onClick={() => load()}>
-            Retry
-          </button>
-        ) : null}
+        <button className={secondaryButtonClass} type="button" onClick={() => load()}>
+          Apply filters
+        </button>
       </div>
 
-      {loadError ? <p className="text-sm text-red">{loadError}</p> : null}
+      {loadError ? (
+        <EmptyState title="Could not load assets" description={loadError} action="Retry" onAction={() => load()} />
+      ) : null}
 
       {!loadError && assets.length === 0 ? (
         <EmptyState title="No assets found" description="Adjust filters or register a new asset." />
-      ) : (
-        <DataTable headers={["Tag", "Name", "Category", "Location", "Condition", "Status"]}>
+      ) : null}
+
+      {!loadError && assets.length > 0 ? (
+        <DataTable headers={["Tag", "Name", "Category", "Location", "Condition", "Status", "Bookable"]}>
           {assets.map((asset) => (
             <tr key={asset.id}>
               <td className="px-4 py-3">
@@ -203,10 +208,11 @@ export default function AssetsPage() {
               <td className="px-4 py-3">
                 <StatusPill value={asset.status} />
               </td>
+              <td className="px-4 py-3 text-secondary">{asset.is_bookable ? "Yes" : "No"}</td>
             </tr>
           ))}
         </DataTable>
-      )}
+      ) : null}
     </div>
   );
 }
